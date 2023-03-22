@@ -322,6 +322,39 @@ async function main() {
     );
   }
 
+  // You can uncomment the following, replace the pubkey and execute to mint tokens to dev account
+  /*
+  const devWallet = new PublicKey("6hqz24NfaMwEvUna95p7haPqrh2urVwyVo1gLHEqUVXY");
+  console.log(
+    "Mint 500k of each tokens to developer wallet",
+    devWallet.toBase58(),
+  );
+  await Promise.all(
+    Object.values(mints).map(async (mintKeypair) => {
+      await createAssociatedTokenAccountIdempotent(
+        connection,
+        adminKeypair,
+        mintKeypair.publicKey,
+        devWallet,
+      );
+
+      const ata = findATAAddressSync(
+        devWallet,
+        mintKeypair.publicKey
+      );
+
+      return mintTo(
+        connection,
+        adminKeypair,
+        mintKeypair.publicKey,
+        ata,
+        adminKeypair,
+        500_000 * 10 ** 6
+      );
+    })
+  );
+  */
+
   if (!mainPoolAccount) {
     //
     // Setup pool
