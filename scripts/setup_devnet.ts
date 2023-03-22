@@ -226,7 +226,10 @@ async function main() {
       perpetuals
     );
   } else {
-    console.log("Perpetuals account already initialized");
+    console.log(
+      "Perpetuals account already initialized:",
+      perpetuals.toBase58()
+    );
   }
 
   //
@@ -382,7 +385,7 @@ async function main() {
 
     mainPoolAccount = await adrenaProgram.account.pool.fetch(mainPool);
   } else {
-    console.log("Main pool account already initialized");
+    console.log("Main pool account already initialized:", mainPool.toBase58());
   }
 
   //
@@ -522,7 +525,7 @@ async function main() {
 
         console.log(`Add ${tokenName} custody tx:`, explorer(tx));
       } else {
-        console.log(tokenName, "Custody already setup");
+        console.log(tokenName, "Custody already setup", custody.toBase58());
       }
     })
   );
@@ -576,7 +579,9 @@ async function main() {
     if (currentLpTokenBalance.value.uiAmount > 0) {
       console.log(
         dummyUserName,
-        "already have LP tokens, thus have already provided liquidity"
+        `(${dummyUsers[
+          dummyUserName
+        ].publicKey.toBase58()}) already have LP tokens, thus have already provided liquidity`
       );
 
       return;
