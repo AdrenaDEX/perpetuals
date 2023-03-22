@@ -9,7 +9,7 @@ perpetuals = "Bmr31xzZYYVUdoHmAJL1DAp2anaitW8Tw9YfASS94MKJ"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
