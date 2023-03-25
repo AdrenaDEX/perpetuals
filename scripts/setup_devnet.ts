@@ -3,10 +3,8 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  sendAndConfirmTransaction,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
-  Transaction,
 } from "@solana/web3.js";
 import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 import {
@@ -236,7 +234,7 @@ async function main() {
   // Setup `Pool` account with newly created spl-tokens as collateral
   //
 
-  const mainPoolName = "Adrena";
+  const mainPoolName = "main";
 
   const [mainPool] = PublicKey.findProgramAddressSync(
     [Buffer.from("pool"), Buffer.from(mainPoolName)],
@@ -394,28 +392,28 @@ async function main() {
 
   const tokenInfos = {
     USDC: {
-      stable: true,
+      isStable: true,
       pythOracle: new PublicKey("5SSkXsEKQepHHAewytPVwdej4epN1nxgLVM84L4KXgy7"),
       targetRatio: new BN(3_000), // 30%
       minRatio: new BN(0), // 0%
       maxRatio: new BN(10_000), // 100%
     },
     ETH: {
-      stable: false,
+      isStable: false,
       pythOracle: new PublicKey("EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"),
       targetRatio: new BN(2_000), // 20%
       minRatio: new BN(0), // 0%
       maxRatio: new BN(10_000), // 100%
     },
     BTC: {
-      stable: false,
+      isStable: false,
       pythOracle: new PublicKey("HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J"),
       targetRatio: new BN(2_000), // 20%
       minRatio: new BN(0), // 0%
       maxRatio: new BN(10_000), // 100%
     },
     SOL: {
-      stable: false,
+      isStable: false,
       pythOracle: new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"),
       targetRatio: new BN(3_000), // 30%
       minRatio: new BN(0), // 0%
@@ -645,6 +643,10 @@ async function main() {
       explorer(tx)
     );
   };
+
+  // Get the latest version of pool data
+  //
+  mainPoolAccount = await adrenaProgram.account.pool.fetch(mainPool);
 
   // 10 BTC
   await addLiquidityIfNotAlready("alice", "BTC", new BN(10 * 10 ** 6));
