@@ -25,7 +25,7 @@ import {
 //
 
 const ADRENA_PROGRAM_ID = new PublicKey(
-  "CMcky3KoHk78YVP9LGe6PFbjwWomrfGxya3difDT2EQo"
+  "H1byJyMjQ3gUrtrrav5FV7yV3Jo6pT8YePtNkdGgoa1P"
 );
 
 const LOCAL_WALLET_PATH = "/Users/orex/.config/solana/id.json";
@@ -234,7 +234,7 @@ async function main() {
   // Setup `Pool` account with newly created spl-tokens as collateral
   //
 
-  const mainPoolName = "main";
+  const mainPoolName = "adrena";
 
   const [mainPool] = PublicKey.findProgramAddressSync(
     [Buffer.from("pool"), Buffer.from(mainPoolName)],
@@ -394,139 +394,200 @@ async function main() {
     USDC: {
       isStable: true,
       pythOracle: new PublicKey("5SSkXsEKQepHHAewytPVwdej4epN1nxgLVM84L4KXgy7"),
-      targetRatio: new BN(3_000), // 30%
-      minRatio: new BN(0), // 0%
-      maxRatio: new BN(10_000), // 100%
     },
     ETH: {
       isStable: false,
       pythOracle: new PublicKey("EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"),
-      targetRatio: new BN(2_000), // 20%
-      minRatio: new BN(0), // 0%
-      maxRatio: new BN(10_000), // 100%
     },
     BTC: {
       isStable: false,
       pythOracle: new PublicKey("HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J"),
-      targetRatio: new BN(2_000), // 20%
-      minRatio: new BN(0), // 0%
-      maxRatio: new BN(10_000), // 100%
     },
     SOL: {
       isStable: false,
       pythOracle: new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"),
-      targetRatio: new BN(3_000), // 30%
-      minRatio: new BN(0), // 0%
-      maxRatio: new BN(10_000), // 100%
     },
   } as const;
 
-  await Promise.all(
-    Object.entries(mints).map(async ([tokenName, mintKeypair]) => {
-      const [custody] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("custody"),
-          mainPool.toBuffer(),
-          mintKeypair.publicKey.toBuffer(),
-        ],
-        ADRENA_PROGRAM_ID
-      );
+  // Due to how addCustody works, ratio targets must always worth 1
+  // You gotta have to adapt ratios each time you add a new custody
+  const ratiosHistory = [
+    [
+      {
+        // USDC
+        target: new BN(10_000),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+    ],
+    [
+      {
+        // USDC
+        target: new BN(10_000),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // ETH
+        target: new BN(0),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+    ],
+    [
+      {
+        // USDC
+        target: new BN(10_000),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // ETH
+        target: new BN(0),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // BTC
+        target: new BN(0),
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+    ],
+    [
+      // LAST ONE
+      {
+        // USDC
+        target: new BN(3_000), // 30%
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // ETH
+        target: new BN(2_000), // 20%
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // BTC
+        target: new BN(2_000), // 20%
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+      {
+        // SOL
+        target: new BN(3_000), // 30%
+        min: new BN(0), // 0%
+        max: new BN(10_000), // 100%
+      },
+    ],
+  ];
 
-      const [custodyTokenAccount] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("custody_token_account"),
-          mainPool.toBuffer(),
-          mintKeypair.publicKey.toBuffer(),
-        ],
-        ADRENA_PROGRAM_ID
-      );
+  let i = 0;
+  for await (const [tokenName, mintKeypair] of Object.entries(mints)) {
+    const [custody] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("custody"),
+        mainPool.toBuffer(),
+        mintKeypair.publicKey.toBuffer(),
+      ],
+      ADRENA_PROGRAM_ID
+    );
 
-      let custodyAccount = await adrenaProgram.account.custody.fetchNullable(
-        custody
-      );
+    const [custodyTokenAccount] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("custody_token_account"),
+        mainPool.toBuffer(),
+        mintKeypair.publicKey.toBuffer(),
+      ],
+      ADRENA_PROGRAM_ID
+    );
 
-      if (!custodyAccount) {
-        const { isStable, pythOracle, targetRatio, minRatio, maxRatio } =
-          tokenInfos[tokenName];
+    let custodyAccount = await adrenaProgram.account.custody.fetchNullable(
+      custody
+    );
 
-        // Setup custody account
-        const tx = await adrenaProgram.methods
-          .addCustody({
-            isStable,
-            oracle: {
-              oracleAccount: pythOracle as PublicKey,
-              oracleType: { pyth: {} },
-              maxPriceError: new BN(1_000_000),
-              maxPriceAgeSec: 30,
-            },
-            pricing: {
-              useEma: false,
-              useUnrealizedPnlInAum: true,
-              tradeSpreadLong: new BN(100),
-              tradeSpreadShort: new BN(100),
-              swapSpread: new BN(300),
-              minInitialLeverage: new BN(10_000),
-              maxInitialLeverage: new BN(500_000),
-              maxLeverage: new BN(500_000),
-              maxPayoffMult: new BN(10_000),
-              maxUtilization: new BN(0),
-              maxPositionLockedUsd: new BN(0),
-              maxTotalLockedUsd: new BN(0),
-            },
-            permissions: {
-              allowSwap: true,
-              allowAddLiquidity: true,
-              allowRemoveLiquidity: true,
-              allowOpenPosition: true,
-              allowClosePosition: true,
-              allowPnlWithdrawal: true,
-              allowCollateralWithdrawal: true,
-              allowSizeChange: true,
-            },
-            fees: {
-              mode: { linear: {} },
-              maxIncrease: new BN(20_000),
-              maxDecrease: new BN(10_000),
-              swap: new BN(100),
-              addLiquidity: new BN(200),
-              removeLiquidity: new BN(300),
-              openPosition: new BN(100),
-              closePosition: new BN(100),
-              liquidation: new BN(50),
-              protocolShare: new BN(25),
-            },
-            borrowRate: {
-              baseRate: new BN(0),
-              slope1: new BN(80_000),
-              slope2: new BN(120_000),
-              optimalUtilization: new BN(800_000_000),
-            },
-            targetRatio,
-            minRatio,
-            maxRatio,
-          } as any)
-          .accounts({
-            admin: adminKeypair.publicKey,
-            multisig,
-            transferAuthority,
-            perpetuals,
-            pool: mainPool,
-            custody,
-            custodyTokenAccount,
-            custodyTokenMint: mintKeypair.publicKey,
-            systemProgram: SystemProgram.programId,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            rent: SYSVAR_RENT_PUBKEY,
-          })
-          .signers([adminKeypair])
-          .rpc();
+    if (!custodyAccount) {
+      const { isStable, pythOracle } = tokenInfos[tokenName];
 
-        console.log(`Add ${tokenName} custody tx:`, explorer(tx));
-      } else {
-        console.log(tokenName, "Custody already setup", custody.toBase58());
-      }
-    })
-  );
+      // Setup custody account
+      const tx = await adrenaProgram.methods
+        .addCustody({
+          isStable,
+          oracle: {
+            oracleAccount: pythOracle as PublicKey,
+            oracleType: { pyth: {} },
+            maxPriceError: new BN(1_000_000),
+            maxPriceAgeSec: 30,
+          },
+          pricing: {
+            useEma: false,
+            useUnrealizedPnlInAum: true,
+            tradeSpreadLong: new BN(100),
+            tradeSpreadShort: new BN(100),
+            swapSpread: new BN(300),
+            minInitialLeverage: new BN(10_000),
+            maxInitialLeverage: new BN(500_000),
+            maxLeverage: new BN(500_000),
+            maxPayoffMult: new BN(10_000),
+            maxUtilization: new BN(0),
+            maxPositionLockedUsd: new BN(0),
+            maxTotalLockedUsd: new BN(0),
+          },
+          permissions: {
+            allowSwap: true,
+            allowAddLiquidity: true,
+            allowRemoveLiquidity: true,
+            allowOpenPosition: true,
+            allowClosePosition: true,
+            allowPnlWithdrawal: true,
+            allowCollateralWithdrawal: true,
+            allowSizeChange: true,
+          },
+          fees: {
+            mode: { linear: {} },
+            ratioMult: new BN(20_000),
+            utilizationMult: new BN(20_000),
+            swapIn: new BN(100),
+            swapOut: new BN(100),
+            stableSwapIn: new BN(100),
+            stableSwapOut: new BN(100),
+            addLiquidity: new BN(100),
+            removeLiquidity: new BN(100),
+            openPosition: new BN(100),
+            closePosition: new BN(100),
+            liquidation: new BN(100),
+            protocolShare: new BN(10),
+          },
+          borrowRate: {
+            baseRate: new BN(0),
+            slope1: new BN(80_000),
+            slope2: new BN(120_000),
+            optimalUtilization: new BN(800_000_000),
+          },
+          ratios: ratiosHistory[i++],
+        } as any)
+        .accounts({
+          admin: adminKeypair.publicKey,
+          multisig,
+          transferAuthority,
+          perpetuals,
+          pool: mainPool,
+          custody,
+          custodyTokenAccount,
+          custodyTokenMint: mintKeypair.publicKey,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([adminKeypair])
+        .rpc();
+
+      console.log(`Add ${tokenName} custody tx:`, explorer(tx));
+    } else {
+      console.log(tokenName, "Custody already setup", custody.toBase58());
+    }
+  }
 
   //
   // Add liquidity from dummy wallets
@@ -586,16 +647,13 @@ async function main() {
     }
 
     const custodiesAccounts = await adrenaProgram.account.custody.fetchMultiple(
-      (
-        mainPoolAccount.tokens as {
-          custody: PublicKey;
-        }[]
-      ).map(({ custody }) => custody)
+      mainPoolAccount.custodies
     );
 
     const tx = await adrenaProgram.methods
       .addLiquidity({
-        amount,
+        amountIn: amount,
+        minLpAmountOut: new BN(0),
       })
       .accounts({
         owner: userKeypair.publicKey,
@@ -612,21 +670,13 @@ async function main() {
       })
       .remainingAccounts([
         // needs to provide all custodies and theirs oracles
-        ...(
-          mainPoolAccount.tokens as {
-            custody: PublicKey;
-          }[]
-        ).map(({ custody }) => ({
+        ...mainPoolAccount.custodies.map((custody) => ({
           pubkey: custody,
           isSigner: false,
           isWritable: false,
         })),
 
-        ...(
-          mainPoolAccount.tokens as {
-            custody: PublicKey;
-          }[]
-        ).map((_, index) => ({
+        ...mainPoolAccount.custodies.map((_, index) => ({
           pubkey: (custodiesAccounts[index] as any).oracle.oracleAccount,
           isSigner: false,
           isWritable: false,
