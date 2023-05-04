@@ -6,9 +6,9 @@ import {
 } from "@pythnetwork/client";
 import { Commitment, Connection, PublicKey } from "@solana/web3.js";
 
-export type Symbol = string;
+export type Mint = string;
 export type PriceChangeTriggerFn = (
-  pricesCache: Record<Symbol, number | null>
+  pricesCache: Record<Mint, number | null>
 ) => void;
 
 // Load prices periodically and trigger callback function
@@ -20,11 +20,11 @@ export type PriceChangeTriggerFn = (
 export default class PriceFeed {
   protected loading: boolean = false;
 
-  public pricesCache: Record<Symbol, number | null> = {};
+  public pricesCache: Record<Mint, number | null> = {};
 
   constructor(
     public readonly pythHttpClient: PythHttpClient,
-    public readonly priceAccounts: Record<Symbol, PublicKey>,
+    public readonly priceAccounts: Record<Mint, PublicKey>,
     public readonly refreshTimeInMs: number
   ) {
     this.pricesCache = Object.keys(priceAccounts).reduce(
@@ -45,7 +45,7 @@ export default class PriceFeed {
   }: {
     connection: Connection;
     cluster: PythCluster;
-    priceAccounts: Record<Symbol, PublicKey>;
+    priceAccounts: Record<string, PublicKey>;
     refreshTimeInMs: number;
     commitment?: Commitment;
   }) {
@@ -76,14 +76,14 @@ export default class PriceFeed {
       (priceChanged, priceData: PriceData, index: number) => {
         const lowestPrice = priceData.price - priceData.confidence;
 
-        const [symbol, _] = priceAccountsArray[index];
+        const [mint, _] = priceAccountsArray[index];
 
         // price is the same, nothing to do
-        if (this.pricesCache[symbol] == lowestPrice) {
+        if (this.pricesCache[mint] === lowestPrice) {
           return priceChanged;
         }
 
-        this.pricesCache[symbol] = lowestPrice;
+        this.pricesCache[mint] = lowestPrice;
 
         return true;
       },

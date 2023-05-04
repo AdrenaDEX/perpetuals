@@ -1,5 +1,6 @@
 import {
   AnchorProvider,
+  BN,
   Program,
   ProgramAccount,
   Wallet,
@@ -58,6 +59,12 @@ export default class Client {
     >;
   }
 
+  public async loadAllCustodies(): Promise<ProgramAccount<Custody>[]> {
+    return this.program.account.custody.all() as unknown as Promise<
+      ProgramAccount<Custody>[]
+    >;
+  }
+
   public unListenToPositionChange(): void {
     if (this.positionChangeSubscriptionId === null) {
       return;
@@ -101,6 +108,38 @@ export default class Client {
       );
   }
 
+  public async getLiquidationPrice(
+    pubkey: PublicKey,
+    position: Position,
+    custody: Custody
+  ): Promise<number | null> {
+    if (!this.program.views) {
+      throw new Error("Cannot get liquidation price");
+    }
+
+    const liquidationPrice = await this.program.views.getLiquidationPrice(
+      {
+        addCollateral: new BN(0),
+        removeCollateral: new BN(0),
+      },
+      {
+        accounts: {
+          perpetuals: this.getPerpetualsPda(),
+          pool: position.pool,
+          position: pubkey,
+          custody: position.custody,
+          custodyOracleAccount: custody.oracle.oracleAccount,
+        },
+      }
+    );
+
+    if (liquidationPrice === null) {
+      return null;
+    }
+
+    return liquidationPrice.toNumber() / 10 ** custody.decimals;
+  }
+
   // Return true if position got liquidated, false otherwise
   public async tryAndLiquidatePosition({
     pubkey,
@@ -128,7 +167,7 @@ export default class Client {
       receivingAccount,
       rewardsReceivingAccount,
       transferAuthority: this.getTransferAuthorityPda(),
-      perpetuals: this.programId,
+      perpetuals: this.getPerpetualsPda(),
       pool: position.pool,
       position: pubkey,
       custody: position.custody,
@@ -154,6 +193,13 @@ export default class Client {
   protected getTransferAuthorityPda(): PublicKey {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("transfer_authority")],
+      this.programId
+    )[0];
+  }
+
+  protected getPerpetualsPda(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("perpetuals")],
       this.programId
     )[0];
   }

@@ -39,7 +39,21 @@ async function main() {
     connection,
     cluster: "devnet",
     priceAccounts: {
-      SOL_USD: new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"),
+      // SOL_USD
+      // Mint here is the mint the price is about (fake SOL here)
+      EtX1Uagb44Yp5p4hsqjwAwF3mKaQTMizCyvC1CsyHAQN: new PublicKey(
+        "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"
+      ),
+
+      // ETH_USD
+      "3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr": new PublicKey(
+        "EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"
+      ),
+
+      // BTC_USD
+      HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM: new PublicKey(
+        "HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J"
+      ),
     },
     refreshTimeInMs: 2_000,
     commitment: "processed",
@@ -47,7 +61,7 @@ async function main() {
 
   const positionsBank = PositionsBank.initialize({ client });
 
-  const liquidator = LiquidatorBot.initialize({
+  const liquidator = await LiquidatorBot.initialize({
     client,
     priceFeed,
     positionsBank,

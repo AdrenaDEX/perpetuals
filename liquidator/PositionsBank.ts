@@ -7,9 +7,11 @@ export type PositionChangeTriggerFn = (
   position: Position
 ) => void;
 
+export type PublicKeyString = string;
+
 // Keep up to date list of Positions
 export default class PositionsBank {
-  public bank: Record<string, Position> = {};
+  public bank: Record<PublicKeyString, Position> = {};
 
   constructor(public readonly client: Client) {}
 
@@ -31,6 +33,12 @@ export default class PositionsBank {
     );
 
     const positions = await this.client.loadAllPositions();
+
+    console.log(
+      `Positions: [${positions
+        .map(({ publicKey }) => publicKey.toBase58())
+        .join(", ")}]`
+    );
 
     // Push positions to bank
     this.bank = positions.reduce((bank, { publicKey, account: position }) => {
