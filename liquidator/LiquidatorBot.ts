@@ -3,7 +3,7 @@ import Client from "./Client";
 import PositionsBank, { PublicKeyString } from "./PositionsBank";
 import PriceFeed, { Mint } from "./PriceFeed";
 import { Custody, Position } from "./types";
-import { BN, ProgramAccount } from "@coral-xyz/anchor";
+import { ProgramAccount } from "@coral-xyz/anchor";
 
 export default class LiquidatorBot {
   // Keep liquidation price for each positions
@@ -96,12 +96,6 @@ export default class LiquidatorBot {
               liquidationPrice,
               markPrice,
             });
-          } else {
-            console.log("Position is ok", {
-              side: position.side,
-              liquidationPrice,
-              markPrice,
-            });
           }
           return list;
         }
@@ -110,12 +104,6 @@ export default class LiquidatorBot {
           if (liquidationPrice <= markPrice) {
             // Position may be liquidable
             console.log("Position may be liquidable", {
-              side: position.side,
-              liquidationPrice,
-              markPrice,
-            });
-          } else {
-            console.log("Position is ok", {
               side: position.side,
               liquidationPrice,
               markPrice,
