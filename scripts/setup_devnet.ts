@@ -25,7 +25,7 @@ import {
 //
 
 const ADRENA_PROGRAM_ID = new PublicKey(
-  "E62QGi9PKWn1FHyRHxo4LwuKyQN3UNJjNZqrDoVmYaKK"
+  "8G3kMWNnogX2jTYu3Yrq7vz1UdhMYQDPeCDpHZZzkfCL"
 );
 
 const LOCAL_WALLET_PATH = "/Users/orex/.config/solana/id.json";
