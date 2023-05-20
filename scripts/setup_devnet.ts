@@ -9,9 +9,14 @@ import {
 import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  closeAccount,
   createAssociatedTokenAccountIdempotent,
+  createAssociatedTokenAccountIdempotentInstruction,
   createMint,
+  createSyncNativeInstruction,
+  createWrappedNativeAccount,
   mintTo,
+  NATIVE_MINT,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import fs from "fs";
@@ -106,7 +111,7 @@ async function main() {
     ),
   };
 
-  const mints: Record<Token, Keypair> = {
+  const mints: Record<Token, Keypair | PublicKey> = {
     // 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC
     USDC: Keypair.fromSecretKey(
       new Uint8Array([
@@ -137,16 +142,7 @@ async function main() {
         202, 187, 70,
       ])
     ),
-    // EtX1Uagb44Yp5p4hsqjwAwF3mKaQTMizCyvC1CsyHAQN
-    SOL: Keypair.fromSecretKey(
-      new Uint8Array([
-        33, 138, 133, 160, 211, 125, 21, 178, 4, 64, 232, 0, 199, 223, 74, 1,
-        209, 246, 43, 168, 114, 206, 215, 5, 19, 214, 138, 191, 151, 239, 182,
-        208, 206, 90, 123, 79, 163, 184, 219, 6, 77, 255, 144, 195, 173, 205,
-        124, 106, 94, 180, 3, 70, 32, 91, 93, 230, 86, 0, 113, 79, 139, 99, 12,
-        143,
-      ])
-    ),
+    SOL: NATIVE_MINT,
   };
 
   const adrenaProgram = new Program<Adrena>(
@@ -234,7 +230,7 @@ async function main() {
   // Setup `Pool` account with newly created spl-tokens as collateral
   //
 
-  const mainPoolName = "adrena";
+  const mainPoolName = "Adrena";
 
   const [mainPool] = PublicKey.findProgramAddressSync(
     [Buffer.from("pool"), Buffer.from(mainPoolName)],
@@ -254,9 +250,11 @@ async function main() {
   // Setup spl-tokens accounts
   //
 
-  if (!(await connection.getAccountInfo(mints.USDC.publicKey))) {
+  if (!(await connection.getAccountInfo((mints.USDC as Keypair).publicKey))) {
     await Promise.all(
-      Object.values(mints).map((mintKeypair) =>
+      Object.values(mints).map((mintKeypair) => {
+        if (!(mintKeypair instanceof Keypair)) return;
+
         createMint(
           connection,
           adminKeypair,
@@ -264,15 +262,16 @@ async function main() {
           adminKeypair.publicKey,
           6,
           mintKeypair
-        )
-      )
+        );
+      })
     );
 
     console.log(
-      Object.entries(mints).map(
-        ([key, value]) =>
-          `${key} mint initialized: [${value.secretKey.toString()}] ${value.publicKey.toBase58()}`
-      )
+      Object.entries(mints).map(([key, value]) => {
+        if (!(value instanceof Keypair)) return;
+
+        return `${key} mint initialized: [${value.secretKey.toString()}] ${value.publicKey.toBase58()}`;
+      })
     );
 
     // Mint 500k of each tokens to dummy users
@@ -289,6 +288,8 @@ async function main() {
           return [
             ...promises,
             ...Object.values(mints).map(async (mintKeypair) => {
+              if (!(mintKeypair instanceof Keypair)) return;
+
               await createAssociatedTokenAccountIdempotent(
                 connection,
                 adminKeypair,
@@ -317,9 +318,12 @@ async function main() {
     );
   } else {
     console.log(
-      Object.entries(mints).map(
-        ([key, value]) => `${key} mint: ${value.publicKey.toBase58()}`
-      )
+      Object.entries(mints).map(([key, value]) => {
+        if (!(value instanceof Keypair))
+          return `${key} mint: ${value.toBase58()}`;
+
+        return `${key} mint: ${value.publicKey.toBase58()}`;
+      })
     );
   }
 
@@ -332,6 +336,8 @@ async function main() {
   );
   await Promise.all(
     Object.values(mints).map(async (mintKeypair) => {
+       if (!(mintKeypair instanceof Keypair)) return;
+
       await createAssociatedTokenAccountIdempotent(
         connection,
         adminKeypair,
@@ -458,25 +464,25 @@ async function main() {
       // LAST ONE
       {
         // USDC
-        target: new BN(3_000), // 30%
+        target: new BN(3_990), // 39.9%
         min: new BN(0), // 0%
         max: new BN(10_000), // 100%
       },
       {
         // ETH
-        target: new BN(2_000), // 20%
+        target: new BN(3_000), // 30%
         min: new BN(0), // 0%
         max: new BN(10_000), // 100%
       },
       {
         // BTC
-        target: new BN(2_000), // 20%
+        target: new BN(3_000), // 30%
         min: new BN(0), // 0%
         max: new BN(10_000), // 100%
       },
       {
         // SOL
-        target: new BN(3_000), // 30%
+        target: new BN(10), // 0.1%
         min: new BN(0), // 0%
         max: new BN(10_000), // 100%
       },
@@ -485,12 +491,11 @@ async function main() {
 
   let i = 0;
   for await (const [tokenName, mintKeypair] of Object.entries(mints)) {
+    const pubkey: PublicKey =
+      mintKeypair instanceof Keypair ? mintKeypair.publicKey : mintKeypair;
+
     const [custody] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("custody"),
-        mainPool.toBuffer(),
-        mintKeypair.publicKey.toBuffer(),
-      ],
+      [Buffer.from("custody"), mainPool.toBuffer(), pubkey.toBuffer()],
       ADRENA_PROGRAM_ID
     );
 
@@ -498,7 +503,7 @@ async function main() {
       [
         Buffer.from("custody_token_account"),
         mainPool.toBuffer(),
-        mintKeypair.publicKey.toBuffer(),
+        pubkey.toBuffer(),
       ],
       ADRENA_PROGRAM_ID
     );
@@ -575,7 +580,7 @@ async function main() {
           pool: mainPool,
           custody,
           custodyTokenAccount,
-          custodyTokenMint: mintKeypair.publicKey,
+          custodyTokenMint: pubkey,
           systemProgram: SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
@@ -599,7 +604,10 @@ async function main() {
     amount: BN
   ) => {
     const userKeypair = dummyUsers[dummyUserName];
-    const mintPubkey = mints[token].publicKey;
+    const mintPubkey =
+      mints[token] instanceof Keypair
+        ? (mints[token] as Keypair).publicKey
+        : (mints[token] as PublicKey);
 
     const fundingAccount = findATAAddressSync(
       userKeypair.publicKey,
@@ -650,6 +658,56 @@ async function main() {
       mainPoolAccount.custodies
     );
 
+    const preInstructions = [];
+
+    if (mintPubkey.equals(NATIVE_MINT)) {
+      const currentWSOLBalance = await (async () => {
+        try {
+          return new BN(
+            (
+              await connection.getTokenAccountBalance(fundingAccount)
+            ).value.amount
+          );
+        } catch {
+          return new BN(0);
+        }
+      })();
+
+      console.log(dummyUserName, "WSOL balance:", currentWSOLBalance);
+
+      // Not enough WSOL available, need to send some
+      if (currentWSOLBalance < amount) {
+        // Create WSOL token account if not exist
+        preInstructions.push(
+          createAssociatedTokenAccountIdempotentInstruction(
+            userKeypair.publicKey,
+            fundingAccount,
+            userKeypair.publicKey,
+            NATIVE_MINT
+          )
+        );
+
+        // Transfer tokens
+        preInstructions.push(
+          SystemProgram.transfer({
+            fromPubkey: userKeypair.publicKey,
+            toPubkey: fundingAccount,
+            lamports: amount.sub(currentWSOLBalance).toNumber(),
+          })
+        );
+
+        // Sync
+        preInstructions.push(createSyncNativeInstruction(fundingAccount));
+      }
+
+      console.log(
+        dummyUserName,
+        "wraps",
+        amount.sub(currentWSOLBalance).toNumber(),
+        "SOL into WSOL "
+      );
+    }
+
     const tx = await adrenaProgram.methods
       .addLiquidity({
         amountIn: amount,
@@ -682,6 +740,7 @@ async function main() {
           isWritable: false,
         })),
       ])
+      .preInstructions(preInstructions)
       .signers([userKeypair])
       .rpc();
 
@@ -698,17 +757,21 @@ async function main() {
   //
   mainPoolAccount = await adrenaProgram.account.pool.fetch(mainPool);
 
-  // 10 BTC
-  await addLiquidityIfNotAlready("alice", "BTC", new BN(10 * 10 ** 6));
+  // ~$26.5k price
+  // 30% ratio
+  await addLiquidityIfNotAlready("alice", "BTC", new BN(2.3 * 10 ** 6));
 
-  // 150 ETH
-  await addLiquidityIfNotAlready("martin", "ETH", new BN(150 * 10 ** 6));
+  // ~$1.8k price
+  // 30% ratio
+  await addLiquidityIfNotAlready("martin", "ETH", new BN(40 * 10 ** 6));
 
-  // 10_000 SOL
-  await addLiquidityIfNotAlready("kevin", "SOL", new BN(10_000 * 10 ** 6));
+  // ~$20 price
+  // 0.1% ratio
+  await addLiquidityIfNotAlready("kevin", "SOL", new BN(10 * 10 ** 9));
 
-  // 200_000 USDC
-  await addLiquidityIfNotAlready("anna", "USDC", new BN(200_000 * 10 ** 6));
+  // ~$1 price
+  // 39.9% ratio
+  await addLiquidityIfNotAlready("anna", "USDC", new BN(60_000 * 10 ** 6));
 }
 
 main();
