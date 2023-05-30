@@ -43,7 +43,7 @@ pub mod perpetuals {
         instructions::add_vest(ctx, &params)
     }
 
-    pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> Result<u8> {
+    pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> Result<u64> {
         instructions::claim_vest(ctx)
     }
 

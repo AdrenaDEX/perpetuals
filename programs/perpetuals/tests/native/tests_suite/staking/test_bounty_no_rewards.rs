@@ -5,11 +5,8 @@ use {
     },
     bonfida_test_utils::{ProgramTestContextExt, ProgramTestExt},
     perpetuals::{
-        instructions::{AddStakeParams, AddVestParams, SwapParams},
-        state::{
-            cortex::{Cortex, StakingRound},
-            perpetuals::Perpetuals,
-        },
+        instructions::{AddStakeParams, SwapParams},
+        state::cortex::{Cortex, StakingRound},
     },
     solana_program_test::ProgramTest,
     solana_sdk::signer::Signer,
@@ -217,35 +214,6 @@ pub async fn test_bounty_no_rewards() {
         ],
     )
     .await;
-
-    // Prep work: Vest and claim (to get some governance tokens)
-    {
-        // Alice: vest 2 token, unlockable at 50% unlock share (circulating supply 2 tokens)
-        instructions::test_add_vest(
-            &mut program_test_ctx,
-            &keypairs[MULTISIG_MEMBER_A],
-            &keypairs[PAYER],
-            &keypairs[USER_ALICE],
-            &governance_realm_pda,
-            &AddVestParams {
-                amount: utils::scale(2, Cortex::LM_DECIMALS),
-                unlock_share: utils::scale_f64(0.51, Perpetuals::BPS_DECIMALS),
-            },
-            multisig_signers,
-        )
-        .await
-        .unwrap();
-
-        // Alice: claim vest
-        instructions::test_claim_vest(
-            &mut program_test_ctx,
-            &keypairs[PAYER],
-            &keypairs[USER_ALICE],
-            &governance_realm_pda,
-        )
-        .await
-        .unwrap();
-    }
 
     // Prep work: Generate some platform activity to fill current round' rewards
     {

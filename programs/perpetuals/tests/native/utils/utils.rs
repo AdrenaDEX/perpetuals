@@ -59,6 +59,10 @@ pub fn copy_keypair(keypair: &Keypair) -> Keypair {
     Keypair::from_bytes(&keypair.to_bytes()).unwrap()
 }
 
+pub fn days_in_seconds(nb_days: u32) -> i64 {
+    return (nb_days as i64) * (3_600 * 24);
+}
+
 pub async fn get_token_account(
     program_test_ctx: &mut ProgramTestContext,
     key: Pubkey,

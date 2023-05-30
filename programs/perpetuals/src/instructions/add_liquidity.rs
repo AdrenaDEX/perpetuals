@@ -83,6 +83,7 @@ pub struct AddLiquidity<'info> {
     )]
     pub stake_reward_token_custody: Box<Account<'info, Custody>>,
 
+    /// CHECK:
     #[account(
         constraint = stake_reward_token_custody_oracle_account.key() == stake_reward_token_custody.oracle.oracle_account
     )]

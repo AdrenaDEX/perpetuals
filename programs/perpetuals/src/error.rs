@@ -64,4 +64,6 @@ pub enum PerpetualsError {
     InvalidGovernanceProgram,
     #[msg("Governance realm do not match Cortex's")]
     InvalidGovernanceRealm,
+    #[msg("Vesting unlock time is too close or passed")]
+    InvalidVestingUnlockTime,
 }

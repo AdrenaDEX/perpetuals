@@ -83,7 +83,9 @@ pub async fn test_claim_vest(
 
     // ==== THEN ==============================================================
 
-    // Check vest is in user account
+    let vest_account_after = utils::get_account::<Vest>(program_test_ctx, vest_pda).await;
+
+    // Check user account received tokens
     {
         let owner_lm_token_account_after = program_test_ctx
             .get_token_account(lm_token_account_address)
@@ -92,20 +94,24 @@ pub async fn test_claim_vest(
 
         assert_eq!(
             owner_lm_token_account_after.amount,
-            owner_lm_token_account_before.amount + vest_account_before.amount
+            owner_lm_token_account_before.amount
+                + (vest_account_after.claimed_amount - vest_account_before.claimed_amount)
         )
     }
 
-    // Verify that the vest pda has been plucked out of the Cortex vests vector
-    {
-        let cortex_account = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
+    // If everything have been claimed, verify that the vest pda has been plucked out of the Cortex vests vector
+    if vest_account_after.amount == vest_account_after.claimed_amount {
+        {
+            let cortex_account = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
 
-        assert_eq!(
-            cortex_account.vests.iter().find(|v| { **v == vest_pda }),
-            None
-        );
+            assert_eq!(
+                cortex_account.vests.iter().find(|v| { **v == vest_pda }),
+                None
+            );
+        }
     }
 
+    // The governance power should be reduced
     {
         let governance_governing_token_holding_balance_after = utils::get_token_account_balance(
             program_test_ctx,
@@ -114,7 +120,8 @@ pub async fn test_claim_vest(
         .await;
 
         assert_eq!(
-            governance_governing_token_holding_balance_before - vest_account_before.amount,
+            governance_governing_token_holding_balance_before
+                - (vest_account_after.claimed_amount - vest_account_before.claimed_amount),
             governance_governing_token_holding_balance_after
         );
     }

@@ -126,10 +126,13 @@ pub struct AddVest<'info> {
     rent: Sysvar<'info, Rent>,
 }
 
+const SEVEN_DAYS_IN_SECONDS: i64 = 3_600 * 24 * 7;
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AddVestParams {
     pub amount: u64,
-    pub unlock_share: u64,
+    pub unlock_start_timestamp: i64,
+    pub unlock_end_timestamp: i64,
 }
 
 pub fn add_vest<'info>(
@@ -137,9 +140,23 @@ pub fn add_vest<'info>(
     params: &AddVestParams,
 ) -> Result<u8> {
     // validate inputs
-    if params.amount == 0 || params.unlock_share == 0 {
+    if params.amount == 0 || params.unlock_end_timestamp <= params.unlock_start_timestamp {
         return Err(ProgramError::InvalidArgument.into());
     }
+
+    let current_time = ctx.accounts.perpetuals.get_time()?;
+
+    // Unlock must end in minimum 7 days
+    require!(
+        params.unlock_end_timestamp >= (current_time + SEVEN_DAYS_IN_SECONDS),
+        PerpetualsError::InvalidVestingUnlockTime
+    );
+
+    // Vesting must be at least 7 days long
+    require!(
+        (params.unlock_end_timestamp - params.unlock_start_timestamp) >= SEVEN_DAYS_IN_SECONDS,
+        PerpetualsError::InvalidVestingUnlockTime
+    );
 
     // validate signatures
     {
@@ -164,22 +181,26 @@ pub fn add_vest<'info>(
     {
         let vest = ctx.accounts.vest.as_mut();
 
-        if vest.inception_time != 0 {
-            // return error if pool is already initialized
+        // return error if vest is already initialized
+        if vest.amount != 0 && vest.claimed_amount < vest.amount {
             return Err(ProgramError::AccountAlreadyInitialized.into());
         }
 
         msg!(
-            "Record vest: share {} BPS, owner {}",
-            params.unlock_share,
-            ctx.accounts.owner.key
+            "Record vest: amount {}, owner {}, unlock_start_timestamp {}, unlock_end_timestamp: {}",
+            params.amount,
+            ctx.accounts.owner.key,
+            params.unlock_start_timestamp,
+            params.unlock_end_timestamp,
         );
 
         vest.amount = params.amount;
-        vest.unlock_share = params.unlock_share;
+        vest.unlock_start_timestamp = params.unlock_start_timestamp;
+        vest.unlock_end_timestamp = params.unlock_end_timestamp;
+        vest.claimed_amount = 0;
+        vest.last_claim_timestamp = 0;
         vest.owner = ctx.accounts.owner.key();
         vest.bump = *ctx.bumps.get("vest").ok_or(ProgramError::InvalidSeeds)?;
-        vest.inception_time = ctx.accounts.perpetuals.get_time()?;
         vest.vest_token_account = ctx.accounts.vest_token_account.key();
         vest.vest_token_account_bump = *ctx
             .bumps

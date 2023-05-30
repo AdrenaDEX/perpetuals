@@ -4,10 +4,7 @@ use {
         utils::{self, fixtures, pda},
     },
     bonfida_test_utils::ProgramTestExt,
-    perpetuals::{
-        instructions::AddVestParams,
-        state::{cortex::Cortex, perpetuals::Perpetuals},
-    },
+    perpetuals::{instructions::AddVestParams, state::cortex::Cortex},
     solana_program_test::ProgramTest,
     solana_sdk::signer::Signer,
 };
@@ -94,7 +91,9 @@ pub async fn vote() {
         }
     }
 
-    // Alice: vest 1m token, unlockable at 50% unlock share
+    // Alice: vest 1m token, unlock period from now to in 7 days
+    let current_time = utils::get_current_unix_timestamp(&mut program_test_ctx).await;
+
     let alice_vest_pda = instructions::test_add_vest(
         &mut program_test_ctx,
         &keypairs[MULTISIG_MEMBER_A],
@@ -103,7 +102,8 @@ pub async fn vote() {
         &governance_realm_pda,
         &AddVestParams {
             amount: utils::scale(1_000_000, Cortex::LM_DECIMALS),
-            unlock_share: utils::scale_f64(0.5, Perpetuals::BPS_DECIMALS),
+            unlock_start_timestamp: current_time,
+            unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
         },
         multisig_signers,
     )

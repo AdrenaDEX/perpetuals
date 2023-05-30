@@ -11,7 +11,6 @@ use {
         },
         state::{
             cortex::{Cortex, StakingRound},
-            perpetuals::Perpetuals,
             position::Side,
         },
     },
@@ -182,7 +181,9 @@ pub async fn basic_interactions() {
 
     // Simple vest and claim
     {
-        // Alice: vest 2 token, unlockable at 50% unlock share (circulating supply 2 tokens)
+        let current_time = utils::get_current_unix_timestamp(&mut program_test_ctx).await;
+
+        // Alice: vest 2 token, unlock period from now to in 7 days
         instructions::test_add_vest(
             &mut program_test_ctx,
             &keypairs[MULTISIG_MEMBER_A],
@@ -191,14 +192,15 @@ pub async fn basic_interactions() {
             &governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
-                unlock_share: utils::scale_f64(0.5, Perpetuals::BPS_DECIMALS),
+                unlock_start_timestamp: current_time,
+                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
             },
             multisig_signers,
         )
         .await
         .unwrap();
 
-        // Martin: vest 2 token, unlockable at 50% unlock share (circulating supply 4 tokens)
+        // Martin: vest 2 token, unlock period from now to in 7 days
         instructions::test_add_vest(
             &mut program_test_ctx,
             &keypairs[MULTISIG_MEMBER_A],
@@ -207,7 +209,8 @@ pub async fn basic_interactions() {
             &governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
-                unlock_share: utils::scale_f64(0.5, Perpetuals::BPS_DECIMALS),
+                unlock_start_timestamp: current_time,
+                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
             },
             multisig_signers,
         )

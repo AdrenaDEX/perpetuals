@@ -100,7 +100,8 @@ pub async fn test_add_vest(
             perpetuals::instruction::AddVest {
                 params: AddVestParams {
                     amount: params.amount,
-                    unlock_share: params.unlock_share,
+                    unlock_start_timestamp: params.unlock_start_timestamp,
+                    unlock_end_timestamp: params.unlock_end_timestamp,
                 },
             },
             Some(&payer.pubkey()),
@@ -116,7 +117,16 @@ pub async fn test_add_vest(
         let vest_account = utils::get_account::<Vest>(program_test_ctx, vest_pda).await;
 
         assert_eq!(vest_account.amount, params.amount);
-        assert_eq!(vest_account.unlock_share, params.unlock_share);
+        assert_eq!(
+            vest_account.unlock_start_timestamp,
+            params.unlock_start_timestamp
+        );
+        assert_eq!(
+            vest_account.unlock_end_timestamp,
+            params.unlock_end_timestamp
+        );
+        assert_eq!(vest_account.claimed_amount, 0);
+        assert_eq!(vest_account.last_claim_timestamp, 0);
         assert_eq!(vest_account.owner, owner.pubkey());
         assert_eq!(vest_account.bump, vest_bump);
         assert_eq!(vest_account.vest_token_account, vest_token_account_pda);
