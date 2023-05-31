@@ -140,23 +140,25 @@ pub fn add_vest<'info>(
     params: &AddVestParams,
 ) -> Result<u8> {
     // validate inputs
-    if params.amount == 0 || params.unlock_end_timestamp <= params.unlock_start_timestamp {
-        return Err(ProgramError::InvalidArgument.into());
+    {
+        if params.amount == 0 || params.unlock_end_timestamp <= params.unlock_start_timestamp {
+            return Err(ProgramError::InvalidArgument.into());
+        }
+
+        let current_time = ctx.accounts.perpetuals.get_time()?;
+
+        // Unlock must end in minimum 7 days
+        require!(
+            params.unlock_end_timestamp >= (current_time + SEVEN_DAYS_IN_SECONDS),
+            PerpetualsError::InvalidVestingUnlockTime
+        );
+
+        // Vesting must be at least 7 days long
+        require!(
+            (params.unlock_end_timestamp - params.unlock_start_timestamp) >= SEVEN_DAYS_IN_SECONDS,
+            PerpetualsError::InvalidVestingUnlockTime
+        );
     }
-
-    let current_time = ctx.accounts.perpetuals.get_time()?;
-
-    // Unlock must end in minimum 7 days
-    require!(
-        params.unlock_end_timestamp >= (current_time + SEVEN_DAYS_IN_SECONDS),
-        PerpetualsError::InvalidVestingUnlockTime
-    );
-
-    // Vesting must be at least 7 days long
-    require!(
-        (params.unlock_end_timestamp - params.unlock_start_timestamp) >= SEVEN_DAYS_IN_SECONDS,
-        PerpetualsError::InvalidVestingUnlockTime
-    );
 
     // validate signatures
     {

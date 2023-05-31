@@ -179,55 +179,6 @@ pub async fn basic_interactions() {
         }
     }
 
-    // Simple vest and claim
-    {
-        let current_time = utils::get_current_unix_timestamp(&mut program_test_ctx).await;
-
-        // Alice: vest 2 token, unlock period from now to in 7 days
-        instructions::test_add_vest(
-            &mut program_test_ctx,
-            &keypairs[MULTISIG_MEMBER_A],
-            &keypairs[PAYER],
-            &keypairs[USER_ALICE],
-            &governance_realm_pda,
-            &AddVestParams {
-                amount: utils::scale(2, Cortex::LM_DECIMALS),
-                unlock_start_timestamp: current_time,
-                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
-            },
-            multisig_signers,
-        )
-        .await
-        .unwrap();
-
-        // Martin: vest 2 token, unlock period from now to in 7 days
-        instructions::test_add_vest(
-            &mut program_test_ctx,
-            &keypairs[MULTISIG_MEMBER_A],
-            &keypairs[PAYER],
-            &keypairs[USER_MARTIN],
-            &governance_realm_pda,
-            &AddVestParams {
-                amount: utils::scale(2, Cortex::LM_DECIMALS),
-                unlock_start_timestamp: current_time,
-                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
-            },
-            multisig_signers,
-        )
-        .await
-        .unwrap();
-
-        // Alice: claim vest
-        instructions::test_claim_vest(
-            &mut program_test_ctx,
-            &keypairs[PAYER],
-            &keypairs[USER_ALICE],
-            &governance_realm_pda,
-        )
-        .await
-        .unwrap();
-    }
-
     println!("usdc mint: {}", usdc_mint);
     println!("eth mint: {}", eth_mint);
     println!(
@@ -283,6 +234,9 @@ pub async fn basic_interactions() {
         ],
     )
     .await;
+
+    // warp to avoid expired blockhash
+    utils::warp_forward(&mut program_test_ctx, 1).await;
 
     // Simple open/close position
     {
@@ -378,11 +332,43 @@ pub async fn basic_interactions() {
         .unwrap();
     }
 
+    // Simple vest and claim
+    {
+        let current_time = utils::get_current_unix_timestamp(&mut program_test_ctx).await;
+
+        // Alice: vest 2 token, unlock period from now to in 7 days
+        instructions::test_add_vest(
+            &mut program_test_ctx,
+            &keypairs[MULTISIG_MEMBER_A],
+            &keypairs[PAYER],
+            &keypairs[USER_ALICE],
+            &governance_realm_pda,
+            &AddVestParams {
+                amount: utils::scale(2, Cortex::LM_DECIMALS),
+                unlock_start_timestamp: current_time,
+                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
+            },
+            multisig_signers,
+        )
+        .await
+        .unwrap();
+
+        // warp to have tokens to claim
+        utils::warp_forward(&mut program_test_ctx, utils::days_in_seconds(7)).await;
+
+        // Alice: claim vest
+        instructions::test_claim_vest(
+            &mut program_test_ctx,
+            &keypairs[PAYER],
+            &keypairs[USER_ALICE],
+            &governance_realm_pda,
+        )
+        .await
+        .unwrap();
+    }
+
     // Stake
     {
-        // refresh blockhash after add vest
-        utils::warp_forward(&mut program_test_ctx, 1).await;
-
         // Alice: add stake LM token
         instructions::test_add_stake(
             &mut program_test_ctx,

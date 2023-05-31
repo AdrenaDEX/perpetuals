@@ -74,7 +74,9 @@ pub fn oracle_params_regular(oracle_account: Pubkey) -> OracleParams {
         oracle_account,
         oracle_type: OracleType::Test,
         max_price_error: 1_000_000,
-        max_price_age_sec: 30,
+
+        // Price never go stale in tests
+        max_price_age_sec: u32::MAX,
     }
 }
 

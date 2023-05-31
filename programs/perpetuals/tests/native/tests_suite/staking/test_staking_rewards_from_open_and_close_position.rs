@@ -5,7 +5,7 @@ use {
     },
     bonfida_test_utils::{ProgramTestContextExt, ProgramTestExt},
     perpetuals::{
-        instructions::{AddStakeParams, ClosePositionParams, OpenPositionParams},
+        instructions::{AddStakeParams, AddVestParams, ClosePositionParams, OpenPositionParams},
         state::{
             cortex::{Cortex, StakingRound},
             position::Side,
@@ -217,6 +217,39 @@ pub async fn test_staking_rewards_from_open_and_close_position() {
         ],
     )
     .await;
+
+    // Prep work: Alice get 2 governance tokens using vesting
+    {
+        let current_time = utils::get_current_unix_timestamp(&mut program_test_ctx).await;
+
+        instructions::test_add_vest(
+            &mut program_test_ctx,
+            &keypairs[MULTISIG_MEMBER_A],
+            &keypairs[PAYER],
+            &keypairs[USER_ALICE],
+            &governance_realm_pda,
+            &AddVestParams {
+                amount: utils::scale(2, Cortex::LM_DECIMALS),
+                unlock_start_timestamp: current_time,
+                unlock_end_timestamp: current_time + utils::days_in_seconds(7),
+            },
+            multisig_signers,
+        )
+        .await
+        .unwrap();
+
+        // Move until vest end
+        utils::warp_forward(&mut program_test_ctx, utils::days_in_seconds(7)).await;
+
+        instructions::test_claim_vest(
+            &mut program_test_ctx,
+            &keypairs[PAYER],
+            &keypairs[USER_ALICE],
+            &governance_realm_pda,
+        )
+        .await
+        .unwrap();
+    }
 
     // Prep work: Generate some platform activity to fill current round' rewards
 
