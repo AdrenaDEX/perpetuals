@@ -1,5 +1,5 @@
 use {
-    super::{fixtures, get_lm_token_mint_pda, get_program_data_pda, get_test_oracle_account},
+    super::{fixtures, get_program_data_pda, get_test_oracle_account},
     crate::instructions,
     anchor_lang::{prelude::*, InstructionData},
     anchor_spl::token::spl_token,
@@ -137,6 +137,45 @@ pub async fn get_current_unix_timestamp(program_test_ctx: &mut ProgramTestContex
         .await
         .unwrap()
         .unix_timestamp
+}
+
+pub async fn initialize_token_account_idempotent(
+    program_test_ctx: &mut ProgramTestContext,
+    mint: &Pubkey,
+    owner: &Pubkey,
+) -> Pubkey {
+    let mut instructions = Vec::with_capacity(1);
+
+    let ix = spl_associated_token_account::instruction::create_associated_token_account_idempotent(
+        &program_test_ctx.payer.pubkey(),
+        owner,
+        &mint,
+        &spl_token::ID,
+    );
+
+    let pubkey = ix.accounts[1].pubkey;
+
+    instructions.push(ix);
+
+    program_test_ctx
+        .sign_send_instructions(&instructions, &[])
+        .await
+        .unwrap();
+
+    pubkey
+}
+
+pub async fn initialize_users_token_accounts(
+    program_test_ctx: &mut ProgramTestContext,
+    mints: Vec<Pubkey>,
+    users: Vec<Pubkey>,
+) {
+    for mint in mints {
+        program_test_ctx
+            .initialize_token_accounts(mint, users.as_slice())
+            .await
+            .unwrap();
+    }
 }
 
 pub async fn initialize_token_account(
@@ -416,6 +455,7 @@ pub struct SetupCustodyWithLiquidityParams {
     pub payer: Keypair,
 }
 
+// @deprecated
 // Setup the pool, add custodies then add liquidity
 pub async fn setup_pool_with_custodies_and_liquidity(
     program_test_ctx: &mut ProgramTestContext,
@@ -454,16 +494,16 @@ pub async fn setup_pool_with_custodies_and_liquidity(
         )
         .await;
 
+    // warp to avoid expired blockhash
+    warp_forward(program_test_ctx, 1).await;
+
     // Add liquidity
     for params in custodies_params.as_slice() {
         println!(
             "adding liquidity for mint {}",
             params.setup_custody_params.mint
         );
-        initialize_token_account(program_test_ctx, &lp_token_mint_pda, &params.payer.pubkey())
-            .await;
-        let lm_token_mint = get_lm_token_mint_pda().0;
-        initialize_token_account(program_test_ctx, &lm_token_mint, &params.payer.pubkey()).await;
+
         if params.liquidity_amount > 0 {
             instructions::test_add_liquidity(
                 program_test_ctx,
@@ -480,6 +520,9 @@ pub async fn setup_pool_with_custodies_and_liquidity(
             .await
             .unwrap();
         }
+
+        // warp to avoid expired blockhash
+        warp_forward(program_test_ctx, 1).await;
     }
 
     // Set proper ratios
