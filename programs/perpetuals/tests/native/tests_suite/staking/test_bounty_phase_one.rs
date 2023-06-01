@@ -353,7 +353,7 @@ pub async fn test_bounty_phase_one() {
         // Info - this time Alice was subscribed in time and will qualify for rewards
 
         // go 90% of a year later (to enable bounty at 0.01%)
-        utils::warp_forward(&mut program_test_ctx, 28382400).await;
+        utils::warp_forward(&mut program_test_ctx, 28_382_400).await;
 
         // resolve round
         instructions::test_resolve_staking_round(
