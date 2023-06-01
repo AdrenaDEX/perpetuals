@@ -112,9 +112,13 @@ pub async fn basic_interactions() {
 
     let usdc_mint = &test.get_mint_by_name("usdc");
     let eth_mint = &test.get_mint_by_name("eth");
-
-    // warp to avoid expired blockhash
-    utils::warp_forward(&mut test.program_test_ctx.borrow_mut(), 1).await;
+    //
+    //
+    //
+    //
+    //
+    //
+    //
 
     // Simple open/close position
     {

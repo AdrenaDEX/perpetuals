@@ -270,6 +270,8 @@ impl Test {
             .await;
         }
 
+        utils::warp_forward(&mut program_test_ctx.borrow_mut(), 1).await;
+
         // Mint tokens for users to match specified balances
         {
             for user_param in users_param.as_slice() {
