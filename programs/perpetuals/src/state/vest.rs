@@ -39,7 +39,6 @@ impl Vest {
         let unlock_duration_in_seconds: u128 =
             math::checked_as_u128(self.unlock_end_timestamp - self.unlock_start_timestamp)?;
 
-        // Upscale the amount by BPS_POWER to increase calculation precision
         let scaled_amount: u128 =
             math::checked_mul(self.amount as u128, Vest::CALC_PRECISION_POWER)?;
 
