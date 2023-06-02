@@ -139,32 +139,6 @@ pub async fn get_current_unix_timestamp(program_test_ctx: &mut ProgramTestContex
         .unix_timestamp
 }
 
-pub async fn initialize_token_account_idempotent(
-    program_test_ctx: &mut ProgramTestContext,
-    mint: &Pubkey,
-    owner: &Pubkey,
-) -> Pubkey {
-    let mut instructions = Vec::with_capacity(1);
-
-    let ix = spl_associated_token_account::instruction::create_associated_token_account_idempotent(
-        &program_test_ctx.payer.pubkey(),
-        owner,
-        &mint,
-        &spl_token::ID,
-    );
-
-    let pubkey = ix.accounts[1].pubkey;
-
-    instructions.push(ix);
-
-    program_test_ctx
-        .sign_send_instructions(&instructions, &[])
-        .await
-        .unwrap();
-
-    pubkey
-}
-
 pub async fn initialize_users_token_accounts(
     program_test_ctx: &mut ProgramTestContext,
     mints: Vec<Pubkey>,

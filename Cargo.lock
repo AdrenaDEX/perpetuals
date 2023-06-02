@@ -2555,7 +2555,6 @@ dependencies = [
  "solana-program-test",
  "solana-sdk",
  "solana-security-txt",
- "spl-associated-token-account",
  "spl-governance",
  "tokio",
 ]
