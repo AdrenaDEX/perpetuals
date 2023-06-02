@@ -13,15 +13,15 @@ pub async fn insuffisient_fund() {
             utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
-                    "usdc".to_string() => utils::scale(7_500, USDC_DECIMALS),
-                    "eth".to_string() => utils::scale(5, ETH_DECIMALS),
+                    "usdc" => utils::scale(7_500, USDC_DECIMALS),
+                    "eth" => utils::scale(5, ETH_DECIMALS),
                 },
             },
             utils::UserParam {
                 name: "martin",
                 token_balances: hashmap! {
-                    "usdc".to_string()  => utils::scale(1_000, USDC_DECIMALS),
-                    "eth".to_string()  => utils::scale(10, ETH_DECIMALS),
+                    "usdc" => utils::scale(1_000, USDC_DECIMALS),
+                    "eth" => utils::scale(10, ETH_DECIMALS),
                 },
             },
         ],
@@ -36,8 +36,7 @@ pub async fn insuffisient_fund() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
-        // mint for the payouts of the LM token staking (ADX staking)
-        "usdc".to_string(),
+        "usdc",
         6,
         "ADRENA",
         "main_pool",

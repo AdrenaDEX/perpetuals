@@ -13,8 +13,8 @@ pub async fn min_max_ratio() {
         vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
-                "usdc".to_string() => utils::scale(100_000, USDC_DECIMALS),
-                "eth".to_string() => utils::scale(50, ETH_DECIMALS),
+                "usdc" => utils::scale(100_000, USDC_DECIMALS),
+                "eth" => utils::scale(50, ETH_DECIMALS),
             },
         }],
         vec![
@@ -28,8 +28,7 @@ pub async fn min_max_ratio() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
-        // mint for the payouts of the LM token staking (ADX staking)
-        "usdc".to_string(),
+        "usdc",
         6,
         "ADRENA",
         "main_pool",

@@ -14,7 +14,7 @@ pub async fn fixed_fees() {
         vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
-                "usdc".to_string() => utils::scale(100_000, USDC_DECIMALS),
+                "usdc" => utils::scale(100_000, USDC_DECIMALS),
             },
         }],
         vec![utils::MintParam {
@@ -22,8 +22,7 @@ pub async fn fixed_fees() {
             decimals: USDC_DECIMALS,
         }],
         vec!["admin_a", "admin_b", "admin_c"],
-        // mint for the payouts of the LM token staking (ADX staking)
-        "usdc".to_string(),
+        "usdc",
         6,
         "ADRENA",
         "main_pool",

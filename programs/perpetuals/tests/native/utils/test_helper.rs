@@ -47,7 +47,7 @@ pub struct UserParam<'a> {
     pub name: &'a str,
 
     // mint_name: amount
-    pub token_balances: HashMap<String, u64>,
+    pub token_balances: HashMap<&'a str, u64>,
 }
 
 pub struct MintParam<'a> {
@@ -112,7 +112,7 @@ impl Test {
         mints_param: Vec<MintParam<'_>>,
         multisig_members_names: Vec<&str>,
         // mint for the payouts of the LM token staking (ADX staking)
-        cortex_stake_reward_mint_name: String,
+        cortex_stake_reward_mint_name: &str,
         governance_token_decimals: u8,
         governance_realm_name: &str,
         pool_name: &str,
@@ -216,7 +216,10 @@ impl Test {
 
         let multisig_signers: Vec<&Keypair> = multisig_members.values().collect();
 
-        let cortex_stake_reward_mint = &mints.get(&cortex_stake_reward_mint_name).unwrap().pubkey;
+        let cortex_stake_reward_mint = &mints
+            .get(&cortex_stake_reward_mint_name.to_string())
+            .unwrap()
+            .pubkey;
 
         let governance_realm_pda = pda::get_governance_realm_pda(governance_realm_name.to_string());
         let gov_token_mint_pda = pda::get_governance_token_mint_pda().0;
@@ -276,7 +279,7 @@ impl Test {
         {
             for user_param in users_param.as_slice() {
                 for (mint_name, amount) in &user_param.token_balances {
-                    let mint = mints.get(mint_name).unwrap().pubkey;
+                    let mint = mints.get(&mint_name.to_string()).unwrap().pubkey;
                     let user = users.get(&user_param.name.to_string()).unwrap().pubkey();
 
                     let (ata, _) = utils::find_associated_token_account(&user, &mint);
@@ -433,7 +436,7 @@ impl Test {
             multisig_members,
             governance_realm_pda,
             gov_token_mint_pda,
-            cortex_stake_reward_mint_name,
+            cortex_stake_reward_mint_name: cortex_stake_reward_mint_name.to_string(),
             lm_token_mint,
             pool_pda,
             pool_bump,

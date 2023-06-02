@@ -13,8 +13,8 @@ pub async fn insuffisient_fund() {
         vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
-                "usdc".to_string() => utils::scale(100_000, USDC_DECIMALS),
-                "eth".to_string() => utils::scale(50, ETH_DECIMALS),
+                "usdc" => utils::scale(100_000, USDC_DECIMALS),
+                "eth" => utils::scale(50, ETH_DECIMALS),
             },
         }],
         vec![
@@ -28,7 +28,7 @@ pub async fn insuffisient_fund() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
-        "usdc".to_string(),
+        "usdc",
         6,
         "ADRENA",
         "main_pool",
