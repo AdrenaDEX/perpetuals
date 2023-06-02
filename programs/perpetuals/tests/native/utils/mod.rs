@@ -1,7 +1,7 @@
 pub mod fixtures;
-pub mod initialize_test;
 pub mod pda;
+pub mod test_helper;
 #[allow(clippy::module_inception)]
 pub mod utils;
 
-pub use {fixtures::*, initialize_test::*, pda::*, utils::*};
+pub use {fixtures::*, pda::*, test_helper::*, utils::*};

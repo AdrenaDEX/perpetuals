@@ -1,11 +1,5 @@
 use {
-    crate::{
-        instructions,
-        utils::{
-            self, MintParam, NamedSetupCustodyParams, NamedSetupCustodyWithLiquidityParams, Test,
-            UserParam,
-        },
-    },
+    crate::{instructions, utils},
     maplit::hashmap,
     perpetuals::instructions::{AddLiquidityParams, RemoveLiquidityParams},
     solana_sdk::signer::Signer,
@@ -15,8 +9,8 @@ const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn min_max_ratio() {
-    let test = Test::new(
-        vec![UserParam {
+    let test = utils::Test::new(
+        vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
                 "usdc".to_string() => utils::scale(100_000, USDC_DECIMALS),
@@ -24,11 +18,11 @@ pub async fn min_max_ratio() {
             },
         }],
         vec![
-            MintParam {
+            utils::MintParam {
                 name: "usdc",
                 decimals: USDC_DECIMALS,
             },
-            MintParam {
+            utils::MintParam {
                 name: "eth",
                 decimals: ETH_DECIMALS,
             },
@@ -40,13 +34,13 @@ pub async fn min_max_ratio() {
         "ADRENA",
         "main_pool",
         vec![
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
                     target_ratio: utils::ratio_from_percentage(50.0),
-                    min_ratio: utils::ratio_from_percentage(0.0),
-                    max_ratio: utils::ratio_from_percentage(100.0),
+                    min_ratio: utils::ratio_from_percentage(30.0),
+                    max_ratio: utils::ratio_from_percentage(60.0),
                     initial_price: utils::scale(1, USDC_DECIMALS),
                     initial_conf: utils::scale_f64(0.01, USDC_DECIMALS),
                     pricing_params: None,
@@ -57,13 +51,13 @@ pub async fn min_max_ratio() {
                 liquidity_amount: utils::scale(1_500, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
                     target_ratio: utils::ratio_from_percentage(50.0),
-                    min_ratio: utils::ratio_from_percentage(0.0),
-                    max_ratio: utils::ratio_from_percentage(100.0),
+                    min_ratio: utils::ratio_from_percentage(30.0),
+                    max_ratio: utils::ratio_from_percentage(60.0),
                     initial_price: utils::scale(1_500, ETH_DECIMALS),
                     initial_conf: utils::scale(10, ETH_DECIMALS),
                     pricing_params: None,

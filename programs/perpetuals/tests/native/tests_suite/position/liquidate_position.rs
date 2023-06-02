@@ -1,15 +1,9 @@
 use {
-    crate::{
-        instructions,
-        utils::{
-            self, MintParam, NamedSetupCustodyParams, NamedSetupCustodyWithLiquidityParams, Test,
-            UserParam,
-        },
-    },
+    crate::{instructions, utils},
     maplit::hashmap,
     perpetuals::{
         instructions::{OpenPositionParams, SetTestOraclePriceParams},
-        state::position::Side,
+        state::{custody::PricingParams, position::Side},
     },
     solana_sdk::signer::Signer,
 };
@@ -18,33 +12,33 @@ const ETH_DECIMALS: u8 = 9;
 const USDC_DECIMALS: u8 = 6;
 
 pub async fn liquidate_position() {
-    let test = Test::new(
+    let test = utils::Test::new(
         vec![
-            UserParam {
+            utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
                     "usdc".to_string() => utils::scale(1_000, USDC_DECIMALS),
                     "eth".to_string() => utils::scale(100, ETH_DECIMALS),
                 },
             },
-            UserParam {
+            utils::UserParam {
                 name: "martin",
                 token_balances: hashmap! {
                     "usdc".to_string()  => utils::scale(1_000, USDC_DECIMALS),
                     "eth".to_string()  => utils::scale(2, ETH_DECIMALS),
                 },
             },
-            UserParam {
+            utils::UserParam {
                 name: "executioner",
                 token_balances: hashmap! {},
             },
         ],
         vec![
-            MintParam {
+            utils::MintParam {
                 name: "usdc",
                 decimals: USDC_DECIMALS,
             },
-            MintParam {
+            utils::MintParam {
                 name: "eth",
                 decimals: ETH_DECIMALS,
             },
@@ -56,8 +50,8 @@ pub async fn liquidate_position() {
         "ADRENA",
         "main_pool",
         vec![
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
                     target_ratio: utils::ratio_from_percentage(50.0),
@@ -73,16 +67,21 @@ pub async fn liquidate_position() {
                 liquidity_amount: utils::scale(1_000, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
-                    target_ratio: utils::ratio_from_percentage(50.0),
+                    target_ratio: utils::ratio_from_percentage(100.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
                     initial_price: utils::scale(1_500, ETH_DECIMALS),
                     initial_conf: utils::scale(10, ETH_DECIMALS),
-                    pricing_params: None,
+                    pricing_params: Some(PricingParams {
+                        // Expressed in BPS, with BPS = 10_000
+                        // 50_000 = x5, 100_000 = x10
+                        max_leverage: 100_000,
+                        ..utils::fixtures::pricing_params_regular(false)
+                    }),
                     permissions: None,
                     fees: None,
                     borrow_rate: None,
@@ -97,6 +96,8 @@ pub async fn liquidate_position() {
     let alice = test.get_user_keypair_by_name("alice");
     let martin = test.get_user_keypair_by_name("martin");
     let executioner = test.get_user_keypair_by_name("executioner");
+
+    let admin_a = test.get_multisig_member_keypair_by_name("admin_a");
 
     let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
     let multisig_signers = test.get_multisig_signers();
@@ -137,15 +138,15 @@ pub async fn liquidate_position() {
 
     // Makes ETH price to drop 10%
     {
-        let eth_test_oracle_pda = test.custodies_info[0].test_oracle_pda;
-        let eth_custody_pda = test.custodies_info[0].custody_pda;
+        let eth_test_oracle_pda = test.custodies_info[1].test_oracle_pda;
+        let eth_custody_pda = test.custodies_info[1].custody_pda;
 
         let publish_time =
             utils::get_current_unix_timestamp(&mut test.program_test_ctx.borrow_mut()).await;
 
         instructions::test_set_test_oracle_price(
             &mut test.program_test_ctx.borrow_mut(),
-            &multisig_signers[0],
+            admin_a,
             &test.payer_keypair,
             &test.pool_pda,
             &eth_custody_pda,

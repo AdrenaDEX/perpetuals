@@ -692,6 +692,7 @@ pub async fn setup_pool_with_custodies(
     )
 }
 
+// @deprecated
 pub async fn refresh_test_oracle_initial_prices(
     program_test_ctx: &mut ProgramTestContext,
     admin: &Keypair,

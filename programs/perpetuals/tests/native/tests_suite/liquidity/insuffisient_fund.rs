@@ -1,11 +1,5 @@
 use {
-    crate::{
-        instructions,
-        utils::{
-            self, MintParam, NamedSetupCustodyParams, NamedSetupCustodyWithLiquidityParams, Test,
-            UserParam,
-        },
-    },
+    crate::{instructions, utils},
     maplit::hashmap,
     perpetuals::instructions::{AddLiquidityParams, RemoveLiquidityParams},
     solana_sdk::signer::Signer,
@@ -15,8 +9,8 @@ const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn insuffisient_fund() {
-    let test = Test::new(
-        vec![UserParam {
+    let test = utils::Test::new(
+        vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
                 "usdc".to_string() => utils::scale(100_000, USDC_DECIMALS),
@@ -24,11 +18,11 @@ pub async fn insuffisient_fund() {
             },
         }],
         vec![
-            MintParam {
+            utils::MintParam {
                 name: "usdc",
                 decimals: USDC_DECIMALS,
             },
-            MintParam {
+            utils::MintParam {
                 name: "eth",
                 decimals: ETH_DECIMALS,
             },
@@ -39,8 +33,8 @@ pub async fn insuffisient_fund() {
         "ADRENA",
         "main_pool",
         vec![
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
                     target_ratio: utils::ratio_from_percentage(50.0),
@@ -56,8 +50,8 @@ pub async fn insuffisient_fund() {
                 liquidity_amount: utils::scale(0, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
-            NamedSetupCustodyWithLiquidityParams {
-                setup_custody_params: NamedSetupCustodyParams {
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
                     target_ratio: utils::ratio_from_percentage(50.0),

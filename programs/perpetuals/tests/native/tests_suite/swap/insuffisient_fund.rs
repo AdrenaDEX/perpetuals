@@ -1,149 +1,50 @@
 use {
-    crate::{
-        instructions,
-        utils::{self, fixtures, pda},
-    },
-    bonfida_test_utils::ProgramTestExt,
+    crate::{instructions, utils},
+    maplit::hashmap,
     perpetuals::instructions::SwapParams,
-    solana_program_test::ProgramTest,
-    solana_sdk::signer::Signer,
 };
-
-const ROOT_AUTHORITY: usize = 0;
-const PERPETUALS_UPGRADE_AUTHORITY: usize = 1;
-const MULTISIG_MEMBER_A: usize = 2;
-const MULTISIG_MEMBER_B: usize = 3;
-const MULTISIG_MEMBER_C: usize = 4;
-const PAYER: usize = 5;
-const USER_ALICE: usize = 6;
-const USER_MARTIN: usize = 7;
-
-const KEYPAIRS_COUNT: usize = 8;
 
 const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn insuffisient_fund() {
-    let mut program_test = ProgramTest::default();
-
-    // Initialize the accounts that will be used during the test suite
-    let keypairs =
-        utils::create_and_fund_multiple_accounts(&mut program_test, KEYPAIRS_COUNT).await;
-
-    // Initialize mints
-    let usdc_mint = program_test
-        .add_mint(None, USDC_DECIMALS, &keypairs[ROOT_AUTHORITY].pubkey())
-        .0;
-    let eth_mint = program_test
-        .add_mint(None, ETH_DECIMALS, &keypairs[ROOT_AUTHORITY].pubkey())
-        .0;
-
-    // Deploy programs
-    utils::add_perpetuals_program(&mut program_test, &keypairs[PERPETUALS_UPGRADE_AUTHORITY]).await;
-    utils::add_spl_governance_program(&mut program_test, &keypairs[PERPETUALS_UPGRADE_AUTHORITY])
-        .await;
-
-    // Start the client and connect to localnet validator
-    let mut program_test_ctx = program_test.start_with_context().await;
-
-    let upgrade_authority = &keypairs[PERPETUALS_UPGRADE_AUTHORITY];
-
-    let multisig_signers = &[
-        &keypairs[MULTISIG_MEMBER_A],
-        &keypairs[MULTISIG_MEMBER_B],
-        &keypairs[MULTISIG_MEMBER_C],
-    ];
-
-    let governance_realm_pda = pda::get_governance_realm_pda("ADRENA".to_string());
-
-    // mint for the payouts of the LM token staking (ADX staking)
-    let cortex_stake_reward_mint = usdc_mint;
-
-    instructions::test_init(
-        &mut program_test_ctx,
-        upgrade_authority,
-        fixtures::init_params_permissions_full(1),
-        &governance_realm_pda,
-        &cortex_stake_reward_mint,
-        multisig_signers,
-    )
-    .await
-    .unwrap();
-
-    // Initialize and fund associated token accounts
-    {
-        let lm_token_mint = utils::pda::get_lm_token_mint_pda().0;
-
-        // Alice: mint 7.5k USDC and 5 ETH, create LM token account
-        {
-            utils::initialize_and_fund_token_account(
-                &mut program_test_ctx,
-                &usdc_mint,
-                &keypairs[USER_ALICE].pubkey(),
-                &keypairs[ROOT_AUTHORITY],
-                utils::scale(7_500, USDC_DECIMALS),
-            )
-            .await;
-
-            utils::initialize_and_fund_token_account(
-                &mut program_test_ctx,
-                &eth_mint,
-                &keypairs[USER_ALICE].pubkey(),
-                &keypairs[ROOT_AUTHORITY],
-                utils::scale(5, ETH_DECIMALS),
-            )
-            .await;
-
-            utils::initialize_token_account(
-                &mut program_test_ctx,
-                &lm_token_mint,
-                &keypairs[USER_ALICE].pubkey(),
-            )
-            .await;
-        }
-
-        // Martin: mint 1k USDC, 10 ETH, creates LM token account
-        {
-            utils::initialize_and_fund_token_account(
-                &mut program_test_ctx,
-                &usdc_mint,
-                &keypairs[USER_MARTIN].pubkey(),
-                &keypairs[ROOT_AUTHORITY],
-                utils::scale(1_000, USDC_DECIMALS),
-            )
-            .await;
-
-            utils::initialize_and_fund_token_account(
-                &mut program_test_ctx,
-                &eth_mint,
-                &keypairs[USER_MARTIN].pubkey(),
-                &keypairs[ROOT_AUTHORITY],
-                utils::scale(10, ETH_DECIMALS),
-            )
-            .await;
-
-            utils::initialize_token_account(
-                &mut program_test_ctx,
-                &lm_token_mint,
-                &keypairs[USER_MARTIN].pubkey(),
-            )
-            .await;
-        }
-    }
-
-    // Set the pool with 50%/50% ETH/USDC liquidity
-    let (pool_pda, _, _, _, _) = utils::setup_pool_with_custodies_and_liquidity(
-        &mut program_test_ctx,
-        &keypairs[MULTISIG_MEMBER_A],
-        "FOO",
-        &keypairs[PAYER],
-        &cortex_stake_reward_mint,
-        multisig_signers,
+    let test = utils::Test::new(
         vec![
-            utils::SetupCustodyWithLiquidityParams {
-                setup_custody_params: utils::SetupCustodyParams {
-                    mint: usdc_mint,
-                    decimals: USDC_DECIMALS,
+            utils::UserParam {
+                name: "alice",
+                token_balances: hashmap! {
+                    "usdc".to_string() => utils::scale(7_500, USDC_DECIMALS),
+                    "eth".to_string() => utils::scale(5, ETH_DECIMALS),
+                },
+            },
+            utils::UserParam {
+                name: "martin",
+                token_balances: hashmap! {
+                    "usdc".to_string()  => utils::scale(1_000, USDC_DECIMALS),
+                    "eth".to_string()  => utils::scale(10, ETH_DECIMALS),
+                },
+            },
+        ],
+        vec![
+            utils::MintParam {
+                name: "usdc",
+                decimals: USDC_DECIMALS,
+            },
+            utils::MintParam {
+                name: "eth",
+                decimals: ETH_DECIMALS,
+            },
+        ],
+        vec!["admin_a", "admin_b", "admin_c"],
+        // mint for the payouts of the LM token staking (ADX staking)
+        "usdc".to_string(),
+        6,
+        "ADRENA",
+        "main_pool",
+        vec![
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
+                    mint_name: "usdc",
                     is_stable: true,
                     target_ratio: utils::ratio_from_percentage(50.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
@@ -156,12 +57,11 @@ pub async fn insuffisient_fund() {
                     borrow_rate: None,
                 },
                 liquidity_amount: utils::scale(7_500, USDC_DECIMALS),
-                payer: utils::copy_keypair(&keypairs[USER_ALICE]),
+                payer_user_name: "alice",
             },
-            utils::SetupCustodyWithLiquidityParams {
-                setup_custody_params: utils::SetupCustodyParams {
-                    mint: eth_mint,
-                    decimals: ETH_DECIMALS,
+            utils::NamedSetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::NamedSetupCustodyParams {
+                    mint_name: "eth",
                     is_stable: false,
                     target_ratio: utils::ratio_from_percentage(50.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
@@ -174,20 +74,27 @@ pub async fn insuffisient_fund() {
                     borrow_rate: None,
                 },
                 liquidity_amount: utils::scale(5, ETH_DECIMALS),
-                payer: utils::copy_keypair(&keypairs[USER_ALICE]),
+                payer_user_name: "alice",
             },
         ],
     )
     .await;
 
+    let martin = test.get_user_keypair_by_name("martin");
+
+    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
+
+    let usdc_mint = &test.get_mint_by_name("usdc");
+    let eth_mint = &test.get_mint_by_name("eth");
+
     // Swap with not enough collateral should fail
     {
         // Martin: Swap 5k USDC for ETH
         assert!(instructions::test_swap(
-            &mut program_test_ctx,
-            &keypairs[USER_MARTIN],
-            &keypairs[PAYER],
-            &pool_pda,
+            &mut test.program_test_ctx.borrow_mut(),
+            martin,
+            &test.payer_keypair,
+            &test.pool_pda,
             &eth_mint,
             // The program receives USDC
             &usdc_mint,
@@ -205,10 +112,10 @@ pub async fn insuffisient_fund() {
     {
         // Martin: Swap 10 ETH for (15k) USDC
         assert!(instructions::test_swap(
-            &mut program_test_ctx,
-            &keypairs[USER_MARTIN],
-            &keypairs[PAYER],
-            &pool_pda,
+            &mut test.program_test_ctx.borrow_mut(),
+            martin,
+            &test.payer_keypair,
+            &test.pool_pda,
             &usdc_mint,
             // The program receives ETH
             &eth_mint,
