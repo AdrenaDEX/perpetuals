@@ -23,7 +23,6 @@ pub async fn test_claim_vest(
     let vest_pda = pda::get_vest_pda(&owner.pubkey()).0;
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
     let governance_token_mint_pda = pda::get_governance_token_mint_pda().0;
-    let vest_token_account_pda = pda::get_vest_token_account_pda(vest_pda).0;
     let lm_token_account_address =
         utils::find_associated_token_account(&owner.pubkey(), &lm_token_mint_pda).0;
 
@@ -64,7 +63,6 @@ pub async fn test_claim_vest(
             vest: vest_pda,
             lm_token_mint: lm_token_mint_pda,
             governance_token_mint: governance_token_mint_pda,
-            vest_token_account: vest_token_account_pda,
             governance_realm: *governance_realm_pda,
             governance_realm_config: governance_realm_config_pda,
             governance_governing_token_holding: governance_governing_token_holding_pda,

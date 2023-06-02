@@ -69,18 +69,6 @@ pub struct ClaimVest<'info> {
     )]
     pub governance_token_mint: Box<Account<'info, Mint>>,
 
-    #[account(
-        mut,
-        seeds = [
-            b"vest_token_account",
-            vest.key().as_ref(),
-        ],
-        token::authority = transfer_authority,
-        token::mint = lm_token_mint,
-        bump = vest.vest_token_account_bump
-    )]
-    pub vest_token_account: Box<Account<'info, TokenAccount>>,
-
     /// CHECK: checked by spl governance v3 program
     /// A realm represent one project (ADRENA, MANGO etc.) within the governance program
     pub governance_realm: UncheckedAccount<'info>,
@@ -123,12 +111,10 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
         return Ok(0);
     }
 
-    // Transfer vested token to user account
+    // Mint lm token to user account
     {
-        let perpetuals = ctx.accounts.perpetuals.as_ref();
-
-        perpetuals.transfer_tokens(
-            ctx.accounts.vest_token_account.to_account_info(),
+        ctx.accounts.perpetuals.mint_tokens(
+            ctx.accounts.lm_token_mint.to_account_info(),
             ctx.accounts.receiving_account.to_account_info(),
             ctx.accounts.transfer_authority.to_account_info(),
             ctx.accounts.token_program.to_account_info(),
@@ -155,7 +141,7 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
         cortex.vests.remove(vest_idx);
     }
 
-    // Revoke 1:1 governing power for claimed tokens
+    // Revoke 1:1 governing power for each claimed tokens
     {
         let perpetuals = ctx.accounts.perpetuals.as_mut();
         perpetuals.remove_governing_power(

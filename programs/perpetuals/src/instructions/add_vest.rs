@@ -12,7 +12,7 @@ use {
         },
     },
     anchor_lang::prelude::*,
-    anchor_spl::token::{Mint, Token, TokenAccount},
+    anchor_spl::token::{Mint, Token},
 };
 
 #[derive(Accounts)]
@@ -88,19 +88,6 @@ pub struct AddVest<'info> {
         bump = cortex.governance_token_bump
     )]
     pub governance_token_mint: Box<Account<'info, Mint>>,
-
-    #[account(
-        init_if_needed,
-        seeds = [
-            b"vest_token_account",
-            vest.key().as_ref(),
-        ],
-        token::authority = transfer_authority,
-        token::mint = lm_token_mint,
-        bump,
-        payer = payer,
-    )]
-    pub vest_token_account: Box<Account<'info, TokenAccount>>,
 
     /// CHECK: checked by spl governance v3 program
     /// A realm represent one project (ADRENA, MANGO etc.) within the governance program
@@ -203,19 +190,6 @@ pub fn add_vest<'info>(
         vest.last_claim_timestamp = 0;
         vest.owner = ctx.accounts.owner.key();
         vest.bump = *ctx.bumps.get("vest").ok_or(ProgramError::InvalidSeeds)?;
-        vest.vest_token_account = ctx.accounts.vest_token_account.key();
-        vest.vest_token_account_bump = *ctx
-            .bumps
-            .get("vest_token_account")
-            .ok_or(ProgramError::InvalidSeeds)?;
-
-        ctx.accounts.perpetuals.mint_tokens(
-            ctx.accounts.lm_token_mint.to_account_info(),
-            ctx.accounts.vest_token_account.to_account_info(),
-            ctx.accounts.transfer_authority.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-            vest.amount,
-        )?;
     }
 
     // Add vest to cortex

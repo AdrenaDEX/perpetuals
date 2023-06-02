@@ -14,9 +14,6 @@ pub struct Vest {
 
     pub owner: Pubkey,
     pub bump: u8,
-
-    pub vest_token_account: Pubkey,
-    pub vest_token_account_bump: u8,
 }
 
 impl Vest {
@@ -89,8 +86,6 @@ mod test {
             last_claim_timestamp: 0,
             owner: Pubkey::default(),
             bump: 255,
-            vest_token_account: Pubkey::default(),
-            vest_token_account_bump: 255,
         }
     }
 
