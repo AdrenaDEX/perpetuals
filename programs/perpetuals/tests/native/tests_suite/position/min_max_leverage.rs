@@ -11,7 +11,7 @@ const ETH_DECIMALS: u8 = 9;
 const USDC_DECIMALS: u8 = 6;
 
 pub async fn min_max_leverage() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
@@ -89,19 +89,19 @@ pub async fn min_max_leverage() {
     )
     .await;
 
-    let martin = test.get_user_keypair_by_name("martin");
+    let martin = test_setup.get_user_keypair_by_name("martin");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
 
-    let eth_mint = &test.get_mint_by_name("eth");
+    let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Martin: Open 1 ETH long position x10 should fail
     // Fails because fees increase ETH entry price
     assert!(instructions::test_open_position(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         martin,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &eth_mint,
         &cortex_stake_reward_mint,
         OpenPositionParams {
@@ -117,10 +117,10 @@ pub async fn min_max_leverage() {
 
     // Martin: Open 1 ETH long position x0.5 should fail
     assert!(instructions::test_open_position(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         martin,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &eth_mint,
         &cortex_stake_reward_mint,
         OpenPositionParams {

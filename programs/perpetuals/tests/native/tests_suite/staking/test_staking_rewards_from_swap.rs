@@ -16,7 +16,7 @@ const ETH_DECIMALS: u8 = 9;
 // and playing around that limit for different edge cases
 
 pub async fn test_staking_rewards_from_swap() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
@@ -87,28 +87,28 @@ pub async fn test_staking_rewards_from_swap() {
     )
     .await;
 
-    let alice = test.get_user_keypair_by_name("alice");
-    let martin = test.get_user_keypair_by_name("martin");
+    let alice = test_setup.get_user_keypair_by_name("alice");
+    let martin = test_setup.get_user_keypair_by_name("martin");
 
-    let admin_a = test.get_multisig_member_keypair_by_name("admin_a");
+    let admin_a = test_setup.get_multisig_member_keypair_by_name("admin_a");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
-    let multisig_signers = test.get_multisig_signers();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
+    let multisig_signers = test_setup.get_multisig_signers();
 
-    let usdc_mint = &test.get_mint_by_name("usdc");
-    let eth_mint = &test.get_mint_by_name("eth");
+    let usdc_mint = &test_setup.get_mint_by_name("usdc");
+    let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Prep work: Alice get 2 governance tokens using vesting
     {
         let current_time =
-            utils::get_current_unix_timestamp(&mut test.program_test_ctx.borrow_mut()).await;
+            utils::get_current_unix_timestamp(&mut test_setup.program_test_ctx.borrow_mut()).await;
 
         instructions::test_add_vest(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             admin_a,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             alice,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
                 unlock_start_timestamp: current_time,
@@ -121,16 +121,16 @@ pub async fn test_staking_rewards_from_swap() {
 
         // Move until vest end
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             utils::days_in_seconds(7),
         )
         .await;
 
         instructions::test_claim_vest(
-            &mut test.program_test_ctx.borrow_mut(),
-            &test.payer_keypair,
+            &mut test_setup.program_test_ctx.borrow_mut(),
+            &test_setup.payer_keypair,
             alice,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
         )
         .await
         .unwrap();
@@ -140,10 +140,10 @@ pub async fn test_staking_rewards_from_swap() {
     {
         // Martin: Swap 500 USDC for ETH
         instructions::test_swap(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &eth_mint,
             // The program receives USDC
             &usdc_mint,
@@ -162,7 +162,7 @@ pub async fn test_staking_rewards_from_swap() {
         // GIVEN
         let alice_stake_reward_token_account_address =
             utils::find_associated_token_account(&alice.pubkey(), &cortex_stake_reward_mint).0;
-        let alice_stake_reward_token_account_before = test
+        let alice_stake_reward_token_account_before = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -171,14 +171,14 @@ pub async fn test_staking_rewards_from_swap() {
 
         // Alice: add stake LM token
         instructions::test_add_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             AddStakeParams {
                 amount: utils::scale(1, Cortex::LM_DECIMALS),
             },
             &cortex_stake_reward_mint,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
         )
         .await
         .unwrap();
@@ -187,36 +187,36 @@ pub async fn test_staking_rewards_from_swap() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account but not eligible for current round, none)
+        // Alice: test_setup claim stake (stake account but not eligible for current round, none)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
         // THEN
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -234,29 +234,29 @@ pub async fn test_staking_rewards_from_swap() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account eligible for round, some)
+        // Alice: test_setup claim stake (stake account eligible for round, some)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
@@ -264,7 +264,7 @@ pub async fn test_staking_rewards_from_swap() {
 
         // THEN
         let alice_stake_reward_token_account_before = alice_stake_reward_token_account_after;
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)

@@ -12,7 +12,7 @@ const ETH_DECIMALS: u8 = 9;
 const USDC_DECIMALS: u8 = 6;
 
 pub async fn max_user_profit() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
@@ -88,21 +88,21 @@ pub async fn max_user_profit() {
     )
     .await;
 
-    let martin = test.get_user_keypair_by_name("martin");
+    let martin = test_setup.get_user_keypair_by_name("martin");
 
-    let admin_a = test.get_multisig_member_keypair_by_name("admin_a");
+    let admin_a = test_setup.get_multisig_member_keypair_by_name("admin_a");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
-    let multisig_signers = test.get_multisig_signers();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
+    let multisig_signers = test_setup.get_multisig_signers();
 
-    let eth_mint = &test.get_mint_by_name("eth");
+    let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Martin: Open 1 ETH long position x5
     let position_pda = instructions::test_open_position(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         martin,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &eth_mint,
         &cortex_stake_reward_mint,
         OpenPositionParams {
@@ -119,17 +119,17 @@ pub async fn max_user_profit() {
 
     // Makes ETH price to raise 100%
     {
-        let eth_test_oracle_pda = test.custodies_info[1].test_oracle_pda;
-        let eth_custody_pda = test.custodies_info[1].custody_pda;
+        let eth_test_oracle_pda = test_setup.custodies_info[1].test_oracle_pda;
+        let eth_custody_pda = test_setup.custodies_info[1].custody_pda;
 
         let publish_time =
-            utils::get_current_unix_timestamp(&mut test.program_test_ctx.borrow_mut()).await;
+            utils::get_current_unix_timestamp(&mut test_setup.program_test_ctx.borrow_mut()).await;
 
         instructions::test_set_test_oracle_price(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             admin_a,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &eth_custody_pda,
             &eth_test_oracle_pda,
             SetTestOraclePriceParams {
@@ -144,13 +144,13 @@ pub async fn max_user_profit() {
         .unwrap();
     }
 
-    utils::warp_forward(&mut test.program_test_ctx.borrow_mut(), 1).await;
+    utils::warp_forward(&mut test_setup.program_test_ctx.borrow_mut(), 1).await;
 
     instructions::test_close_position(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         martin,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &eth_mint,
         &cortex_stake_reward_mint,
         &position_pda,
@@ -162,14 +162,14 @@ pub async fn max_user_profit() {
     .await
     .unwrap();
 
-    utils::warp_forward(&mut test.program_test_ctx.borrow_mut(), 1).await;
+    utils::warp_forward(&mut test_setup.program_test_ctx.borrow_mut(), 1).await;
 
     // Check user gains
     {
         let martin_eth_pda = utils::find_associated_token_account(&martin.pubkey(), &eth_mint).0;
 
         let martin_eth_balance = utils::get_token_account_balance(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin_eth_pda,
         )
         .await;

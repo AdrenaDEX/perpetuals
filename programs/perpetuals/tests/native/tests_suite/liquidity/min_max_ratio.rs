@@ -9,7 +9,7 @@ const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn min_max_ratio() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
@@ -71,18 +71,18 @@ pub async fn min_max_ratio() {
     )
     .await;
 
-    let alice = test.get_user_keypair_by_name("alice");
+    let alice = test_setup.get_user_keypair_by_name("alice");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
 
-    let usdc_mint = &test.get_mint_by_name("usdc");
+    let usdc_mint = &test_setup.get_mint_by_name("usdc");
 
     // Go over 60% ratio should trigger error
     assert!(instructions::test_add_liquidity(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         alice,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &usdc_mint,
         &cortex_stake_reward_mint,
         AddLiquidityParams {
@@ -94,10 +94,10 @@ pub async fn min_max_ratio() {
     .is_err());
 
     let alice_lp_token_mint_pda =
-        utils::find_associated_token_account(&alice.pubkey(), &test.lp_token_mint_pda).0;
+        utils::find_associated_token_account(&alice.pubkey(), &test_setup.lp_token_mint_pda).0;
 
     let alice_lp_token_account_balance = utils::get_token_account_balance(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         alice_lp_token_mint_pda,
     )
     .await;
@@ -105,10 +105,10 @@ pub async fn min_max_ratio() {
     // Try to remove 35% of LP token as USDC (~1,050 USDC), lowering USDC ratio to ~23%
     // Going under 30% ratio should trigger error
     assert!(instructions::test_remove_liquidity(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         alice,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &usdc_mint,
         &cortex_stake_reward_mint,
         RemoveLiquidityParams {

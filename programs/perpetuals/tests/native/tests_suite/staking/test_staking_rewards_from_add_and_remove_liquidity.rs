@@ -13,7 +13,7 @@ const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
@@ -84,27 +84,27 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
     )
     .await;
 
-    let alice = test.get_user_keypair_by_name("alice");
-    let martin = test.get_user_keypair_by_name("martin");
+    let alice = test_setup.get_user_keypair_by_name("alice");
+    let martin = test_setup.get_user_keypair_by_name("martin");
 
-    let admin_a = test.get_multisig_member_keypair_by_name("admin_a");
+    let admin_a = test_setup.get_multisig_member_keypair_by_name("admin_a");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
-    let multisig_signers = test.get_multisig_signers();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
+    let multisig_signers = test_setup.get_multisig_signers();
 
-    let eth_mint = &test.get_mint_by_name("eth");
+    let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Prep work: Alice get 2 governance tokens using vesting
     {
         let current_time =
-            utils::get_current_unix_timestamp(&mut test.program_test_ctx.borrow_mut()).await;
+            utils::get_current_unix_timestamp(&mut test_setup.program_test_ctx.borrow_mut()).await;
 
         instructions::test_add_vest(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             admin_a,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             alice,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
                 unlock_start_timestamp: current_time,
@@ -117,16 +117,16 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // Move until vest end
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             utils::days_in_seconds(7),
         )
         .await;
 
         instructions::test_claim_vest(
-            &mut test.program_test_ctx.borrow_mut(),
-            &test.payer_keypair,
+            &mut test_setup.program_test_ctx.borrow_mut(),
+            &test_setup.payer_keypair,
             alice,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
         )
         .await
         .unwrap();
@@ -134,10 +134,10 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
     // Prep work: Generate some platform activity to fill current round' rewards
     instructions::test_add_liquidity(
-        &mut test.program_test_ctx.borrow_mut(),
+        &mut test_setup.program_test_ctx.borrow_mut(),
         martin,
-        &test.payer_keypair,
-        &test.pool_pda,
+        &test_setup.payer_keypair,
+        &test_setup.pool_pda,
         &eth_mint,
         &cortex_stake_reward_mint,
         AddLiquidityParams {
@@ -154,7 +154,7 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
     // happy path: stake, resolve, claim (for the add liquidity)
     {
         // GIVEN
-        let alice_stake_reward_token_account_before = test
+        let alice_stake_reward_token_account_before = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -163,14 +163,14 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // Alice: add stake LM token
         instructions::test_add_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             AddStakeParams {
                 amount: utils::scale(1, Cortex::LM_DECIMALS),
             },
             &cortex_stake_reward_mint,
-            &test.governance_realm_pda,
+            &test_setup.governance_realm_pda,
         )
         .await
         .unwrap();
@@ -179,36 +179,36 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account but not eligible for current round, none)
+        // Alice: test_setup claim stake (stake account but not eligible for current round, none)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
         // THEN
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -226,29 +226,29 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account eligible for round, some)
+        // Alice: test_setup claim stake (stake account eligible for round, some)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
@@ -256,7 +256,7 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // THEN
         let alice_stake_reward_token_account_before = alice_stake_reward_token_account_after;
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -273,20 +273,20 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
     // now close the position and see if staking rewards accrued
     {
         let martin_lp_token =
-            utils::find_associated_token_account(&martin.pubkey(), &test.lp_token_mint_pda).0;
+            utils::find_associated_token_account(&martin.pubkey(), &test_setup.lp_token_mint_pda).0;
 
         let martin_lp_token_balance = utils::get_token_account_balance(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin_lp_token,
         )
         .await;
 
         // remove liquidity
         instructions::test_remove_liquidity(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &eth_mint,
             &cortex_stake_reward_mint,
             RemoveLiquidityParams {
@@ -301,7 +301,7 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
     // happy path: stake, resolve, claim (for the remove liquidity)
     {
         // GIVEN
-        let alice_stake_reward_token_account_before = test
+        let alice_stake_reward_token_account_before = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -312,36 +312,36 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account but not eligible for current round, none)
+        // Alice: test_setup claim stake (stake account but not eligible for current round, none)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
         // THEN
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)
@@ -359,29 +359,29 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // go to next round warps in the future
         utils::warp_forward(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             StakingRound::ROUND_MIN_DURATION_SECONDS,
         )
         .await;
 
         // resolve round
         instructions::test_resolve_staking_round(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
+            &test_setup.payer_keypair,
             &cortex_stake_reward_mint,
         )
         .await
         .unwrap();
 
-        // Alice: test claim stake (stake account eligible for round, some)
+        // Alice: test_setup claim stake (stake account eligible for round, some)
         instructions::test_claim_stake(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
             alice,
-            &test.payer_keypair,
-            &test.governance_realm_pda,
+            &test_setup.payer_keypair,
+            &test_setup.governance_realm_pda,
             &cortex_stake_reward_mint,
         )
         .await
@@ -389,7 +389,7 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
         // THEN
         let alice_stake_reward_token_account_before = alice_stake_reward_token_account_after;
-        let alice_stake_reward_token_account_after = test
+        let alice_stake_reward_token_account_after = test_setup
             .program_test_ctx
             .borrow_mut()
             .get_token_account(alice_stake_reward_token_account_address)

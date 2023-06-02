@@ -10,7 +10,7 @@ use {
 const USDC_DECIMALS: u8 = 6;
 
 pub async fn fixed_fees() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![utils::UserParam {
             name: "alice",
             token_balances: hashmap! {
@@ -46,17 +46,17 @@ pub async fn fixed_fees() {
     )
     .await;
 
-    let alice = test.get_user_keypair_by_name("alice");
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
-    let usdc_mint = &test.get_mint_by_name("usdc");
+    let alice = test_setup.get_user_keypair_by_name("alice");
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
+    let usdc_mint = &test_setup.get_mint_by_name("usdc");
 
     // Check add liquidity fee
     {
         instructions::test_add_liquidity(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &usdc_mint,
             &cortex_stake_reward_mint,
             AddLiquidityParams {
@@ -68,12 +68,14 @@ pub async fn fixed_fees() {
         .unwrap();
 
         {
-            let pool_account =
-                utils::get_account::<Pool>(&mut test.program_test_ctx.borrow_mut(), test.pool_pda)
-                    .await;
+            let pool_account = utils::get_account::<Pool>(
+                &mut test_setup.program_test_ctx.borrow_mut(),
+                test_setup.pool_pda,
+            )
+            .await;
             let custody_account = utils::get_account::<Custody>(
-                &mut test.program_test_ctx.borrow_mut(),
-                test.custodies_info[0].custody_pda,
+                &mut test_setup.program_test_ctx.borrow_mut(),
+                test_setup.custodies_info[0].custody_pda,
             )
             .await;
 
@@ -97,10 +99,10 @@ pub async fn fixed_fees() {
     // Check remove liquidity fee
     {
         instructions::test_remove_liquidity(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             alice,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &usdc_mint,
             &cortex_stake_reward_mint,
             RemoveLiquidityParams {
@@ -112,12 +114,14 @@ pub async fn fixed_fees() {
         .unwrap();
 
         {
-            let pool_account =
-                utils::get_account::<Pool>(&mut test.program_test_ctx.borrow_mut(), test.pool_pda)
-                    .await;
+            let pool_account = utils::get_account::<Pool>(
+                &mut test_setup.program_test_ctx.borrow_mut(),
+                test_setup.pool_pda,
+            )
+            .await;
             let custody_account = utils::get_account::<Custody>(
-                &mut test.program_test_ctx.borrow_mut(),
-                test.custodies_info[0].custody_pda,
+                &mut test_setup.program_test_ctx.borrow_mut(),
+                test_setup.custodies_info[0].custody_pda,
             )
             .await;
 

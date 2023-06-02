@@ -8,7 +8,7 @@ const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
 pub async fn insuffisient_fund() {
-    let test = utils::Test::new(
+    let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
@@ -79,21 +79,21 @@ pub async fn insuffisient_fund() {
     )
     .await;
 
-    let martin = test.get_user_keypair_by_name("martin");
+    let martin = test_setup.get_user_keypair_by_name("martin");
 
-    let cortex_stake_reward_mint = test.get_cortex_stake_reward_mint();
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
 
-    let usdc_mint = &test.get_mint_by_name("usdc");
-    let eth_mint = &test.get_mint_by_name("eth");
+    let usdc_mint = &test_setup.get_mint_by_name("usdc");
+    let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Swap with not enough collateral should fail
     {
         // Martin: Swap 5k USDC for ETH
         assert!(instructions::test_swap(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &eth_mint,
             // The program receives USDC
             &usdc_mint,
@@ -111,10 +111,10 @@ pub async fn insuffisient_fund() {
     {
         // Martin: Swap 10 ETH for (15k) USDC
         assert!(instructions::test_swap(
-            &mut test.program_test_ctx.borrow_mut(),
+            &mut test_setup.program_test_ctx.borrow_mut(),
             martin,
-            &test.payer_keypair,
-            &test.pool_pda,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
             &usdc_mint,
             // The program receives ETH
             &eth_mint,
