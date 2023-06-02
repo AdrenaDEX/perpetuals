@@ -330,8 +330,6 @@ impl Test {
                 .collect()
         };
 
-        utils::warp_forward(&mut program_test_ctx.borrow_mut(), 1).await;
-
         // Setup the pool without ratio bound so we can provide liquidity without ratio limit error
         let (pool_pda, pool_bump, lp_token_mint_pda, lp_token_mint_bump, custodies_info) =
             utils::setup_pool_with_custodies(
@@ -353,9 +351,6 @@ impl Test {
                     .collect(),
             )
             .await;
-
-        // warp to avoid expired blockhash
-        utils::warp_forward(&mut program_test_ctx.borrow_mut(), 1).await;
 
         // Initialize users token accounts for lp token mint
         {
@@ -396,9 +391,6 @@ impl Test {
                 .await
                 .unwrap();
             }
-
-            // warp to avoid expired blockhash
-            utils::warp_forward(&mut program_test_ctx.borrow_mut(), 1).await;
         }
 
         // Set proper ratios
