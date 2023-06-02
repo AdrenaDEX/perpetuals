@@ -282,18 +282,6 @@ pub async fn test_staking_rewards_from_open_and_close_position() {
 
     // now close the position and see if staking rewards accrued
     {
-        /*utils::refresh_test_oracle_initial_prices(
-            &mut test.program_test_ctx.borrow_mut(),
-            admin_a,
-            &test.pool_pda,
-            &test.payer_keypair,
-            &multisig_signers,
-            &custodies_params,
-            &custodies_infos,
-        )
-        .await
-        .unwrap();*/
-
         // Martin: Close the ETH position
         instructions::test_close_position(
             &mut test.program_test_ctx.borrow_mut(),

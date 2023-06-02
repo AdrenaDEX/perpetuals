@@ -273,20 +273,6 @@ pub async fn test_staking_rewards_from_add_and_remove_liquidity() {
 
     // now close the position and see if staking rewards accrued
     {
-        /*
-            utils::refresh_test_oracle_initial_prices(
-                &mut test.program_test_ctx.borrow_mut(),
-                admin_a,
-                &test.pool_pda,
-                &test.payer_keypair,
-                &multisig_signers,
-                &custodies_params,
-                &test.custodies_info,
-            )
-            .await
-            .unwrap();
-        */
-
         let martin_lp_token =
             utils::find_associated_token_account(&martin.pubkey(), &test.lp_token_mint_pda).0;
 

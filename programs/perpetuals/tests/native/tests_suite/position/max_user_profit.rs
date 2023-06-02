@@ -120,8 +120,8 @@ pub async fn max_user_profit() {
 
     // Makes ETH price to raise 100%
     {
-        let eth_test_oracle_pda = test.custodies_info[0].test_oracle_pda;
-        let eth_custody_pda = test.custodies_info[0].custody_pda;
+        let eth_test_oracle_pda = test.custodies_info[1].test_oracle_pda;
+        let eth_custody_pda = test.custodies_info[1].custody_pda;
 
         let publish_time =
             utils::get_current_unix_timestamp(&mut test.program_test_ctx.borrow_mut()).await;
@@ -145,6 +145,8 @@ pub async fn max_user_profit() {
         .unwrap();
     }
 
+    utils::warp_forward(&mut test.program_test_ctx.borrow_mut(), 1).await;
+
     instructions::test_close_position(
         &mut test.program_test_ctx.borrow_mut(),
         martin,
@@ -155,11 +157,13 @@ pub async fn max_user_profit() {
         &position_pda,
         ClosePositionParams {
             // lowest exit price paid (slippage implied)
-            price: utils::scale(2_940, 6),
+            price: utils::scale(2_970, USDC_DECIMALS),
         },
     )
     .await
     .unwrap();
+
+    utils::warp_forward(&mut test.program_test_ctx.borrow_mut(), 1).await;
 
     // Check user gains
     {
