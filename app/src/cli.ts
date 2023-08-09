@@ -23,7 +23,7 @@ function initClient(clusterUrl: string, adminKeyPath: string): void {
   client.log("Client Initialized");
 }
 
-function init(adminSigners: PublicKey[], minSignatures: number): Promise<void> {
+function init(adminSigners: PublicKey[], minSignatures: number, coreContributorBucketAllocation: BN, daoTreasuryBucketAllocation: BN, polBucketAllocation: BN, ecosystemBucketAllocation: BN): Promise<void> {
   // to be loaded from config file
   const perpetualsConfig: InitParams = {
     minSignatures: minSignatures,
@@ -35,6 +35,10 @@ function init(adminSigners: PublicKey[], minSignatures: number): Promise<void> {
     allowPnlWithdrawal: true,
     allowCollateralWithdrawal: true,
     allowSizeChange: true,
+    coreContributorBucketAllocation: coreContributorBucketAllocation,
+    daoTreasuryBucketAllocation: daoTreasuryBucketAllocation,
+    polBucketAllocation: polBucketAllocation,
+    ecosystemBucketAllocation: ecosystemBucketAllocation
   };
 
   return client.init(adminSigners, perpetualsConfig);
@@ -77,7 +81,7 @@ async function addCustody(
   tokenOracle: PublicKey,
   isStable: boolean,
   isVirtual: boolean,
-  oracleType: keyof OracleParams["oracleType"] = "custom"
+  oracleType: keyof OracleParams["oracleType"] = "none"
 ): Promise<void> {
   // to be loaded from config file
   const oracleConfig: OracleParams = {
@@ -434,11 +438,19 @@ async function getAum(poolName: string): Promise<void> {
     .command("init")
     .description("Initialize the on-chain program")
     .requiredOption("-m, --min-signatures <int>", "Minimum signatures")
+    .option("-s, --coreContributorBucketAllocation", "Core contributors allocation amount")
+    .option("-s, --daoTreasuryBucketAllocation", "DAO treasury allocation amount")
+    .option("-s, --polBucketAllocation", "POL bucket allocation amount")
+    .option("-s, --ecosystemBucketAllocation", "Ecosystem allocation amount")
     .argument("<pubkey...>", "Admin public keys")
     .action(async (args, options) => {
       await init(
         args.map((x) => new PublicKey(x)),
-        options.minSignatures
+        options.minSignatures,
+        options.coreContributorBucketAllocation,
+        options.daoTreasuryBucketAllocation,
+        options.polBucketAllocation,
+        options.ecosystemBucketAllocation
       );
     });
 
