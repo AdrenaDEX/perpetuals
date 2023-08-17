@@ -23,7 +23,7 @@ function initClient(clusterUrl: string, adminKeyPath: string): void {
   client.log("Client Initialized");
 }
 
-function init(adminSigners: PublicKey[], minSignatures: number, coreContributorBucketAllocation: BN, daoTreasuryBucketAllocation: BN, polBucketAllocation: BN, ecosystemBucketAllocation: BN): Promise<void> {
+function init(adminSigners: PublicKey[], minSignatures: number, lmStakingRewardTokenMint: PublicKey, governanceProgram: PublicKey, governanceRealm: PublicKey, coreContributorBucketAllocation: BN, daoTreasuryBucketAllocation: BN, polBucketAllocation: BN, ecosystemBucketAllocation: BN): Promise<void> {
   // to be loaded from config file
   const perpetualsConfig: InitParams = {
     minSignatures: minSignatures,
@@ -41,7 +41,7 @@ function init(adminSigners: PublicKey[], minSignatures: number, coreContributorB
     ecosystemBucketAllocation: ecosystemBucketAllocation
   };
 
-  return client.init(adminSigners, perpetualsConfig);
+  return client.init(adminSigners, lmStakingRewardTokenMint, governanceProgram, governanceRealm, perpetualsConfig);
 }
 
 function setAuthority(
@@ -438,19 +438,27 @@ async function getAum(poolName: string): Promise<void> {
     .command("init")
     .description("Initialize the on-chain program")
     .requiredOption("-m, --min-signatures <int>", "Minimum signatures")
-    .option("-s, --coreContributorBucketAllocation", "Core contributors allocation amount")
-    .option("-s, --daoTreasuryBucketAllocation", "DAO treasury allocation amount")
-    .option("-s, --polBucketAllocation", "POL bucket allocation amount")
-    .option("-s, --ecosystemBucketAllocation", "Ecosystem allocation amount")
+    .requiredOption("-l, --lm-staking-reward-token-mint", "mint address of the staking reward token")
+    .requiredOption("-g, --governance-program", "Governance program address")
+    .requiredOption("-r, --governance-realm", "Governance realm address")
+    .requiredOption("-c, --core-contributor-bucket-allocation", "Core contributors allocation amount")
+    .requiredOption("-d, --dao-treasury-bucket-allocation", "DAO treasury allocation amount")
+    .requiredOption("-p, --pol-bucket-allocation", "POL bucket allocation amount")
+    .requiredOption("-e, --ecosystem-bucket-allocation", "Ecosystem allocation amount")
     .argument("<pubkey...>", "Admin public keys")
     .action(async (args, options) => {
+      console.log("args -> " + args);
+      console.log("options ->" + options);
       await init(
         args.map((x) => new PublicKey(x)),
-        options.minSignatures,
-        options.coreContributorBucketAllocation,
-        options.daoTreasuryBucketAllocation,
-        options.polBucketAllocation,
-        options.ecosystemBucketAllocation
+        options['min-signatures'],
+        options['lm-staking-reward-token-mint'],
+        options['governance-program'],
+        options['governance-realm'],
+        options['core-contributor-bucket-allocation'],
+        options['dao-treasury-bucket-allocation'],
+        options['pol-bucket-allocation'],
+        options['ecosystem-bucket-allocation']
       );
     });
 

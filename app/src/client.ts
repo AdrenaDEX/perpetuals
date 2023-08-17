@@ -45,6 +45,13 @@ export class PerpetualsClient {
   multisig: { publicKey: PublicKey; bump: number };
   authority: { publicKey: PublicKey; bump: number };
   perpetuals: { publicKey: PublicKey; bump: number };
+  lmTokenMint: { publicKey: PublicKey; bump: number };
+  lmStaking: { publicKey: PublicKey; bump: number };
+  cortex: { publicKey: PublicKey; bump: number };
+  governanceTokenMint: { publicKey: PublicKey; bump: number };
+  lmStakingStakedTokenVault: { publicKey: PublicKey; bump: number };
+  lmStakingRewardTokenVault: { publicKey: PublicKey; bump: number };
+  lmStakingLmRewardTokenVault: { publicKey: PublicKey; bump: number };
 
   constructor(clusterUrl: string, adminKey: string) {
     this.provider = AnchorProvider.local(clusterUrl, {
@@ -63,6 +70,13 @@ export class PerpetualsClient {
     this.multisig = this.findProgramAddress("multisig");
     this.authority = this.findProgramAddress("transfer_authority");
     this.perpetuals = this.findProgramAddress("perpetuals");
+    this.lmTokenMint = this.findProgramAddress("lm_token_mint");
+    this.lmStaking = this.findProgramAddress("staking", this.lmTokenMint);
+    this.cortex = this.findProgramAddress("cortex");
+    this.governanceTokenMint = this.findProgramAddress("governance_token_mint");
+    this.lmStakingStakedTokenVault = this.findProgramAddress("staking_staked_token_vault", this.lmStaking);
+    this.lmStakingRewardTokenVault = this.findProgramAddress("staking_reward_token_vault", this.lmStaking);
+    this.lmStakingLmRewardTokenVault = this.findProgramAddress("staking_lm_reward_token_vault", this.lmStaking);
 
     BN.prototype.toJSON = function () {
       return this.toString(10);
@@ -346,7 +360,7 @@ export class PerpetualsClient {
   ///////
   // instructions
 
-  init = async (admins: PublicKey[], config: InitParams): Promise<void> => {
+  init = async (admins: PublicKey[], lmStakingRewardTokenMint: PublicKey, governance_program: PublicKey, governance_realm: PublicKey, config: InitParams): Promise<void> => {
     const perpetualsProgramData = PublicKey.findProgramAddressSync(
       [this.program.programId.toBuffer()],
       new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
@@ -368,9 +382,19 @@ export class PerpetualsClient {
         upgradeAuthority: this.provider.wallet.publicKey,
         multisig: this.multisig.publicKey,
         transferAuthority: this.authority.publicKey,
+        lmStaking: this.lmStaking.publicKey,
+        cortex: this.cortex.publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
+        governanceTokenMint: this.governanceTokenMint.publicKey,
+        lmStakingStakedTokenVault: this.lmStakingStakedTokenVault.publicKey,
+        lmStakingRewardTokenVault: this.lmStakingRewardTokenVault.publicKey,
+        lmStakingLmRewardTokenVault: this.lmStakingLmRewardTokenVault.publicKey,
+        lmStakingRewardTokenMint: lmStakingRewardTokenMint,
         perpetuals: this.perpetuals.publicKey,
         perpetualsProgram: this.program.programId,
         perpetualsProgramData,
+        governanceRealm: governance_realm,
+        governanceProgram: governance_program,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       })

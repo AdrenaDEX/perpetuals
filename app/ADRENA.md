@@ -2,8 +2,11 @@
 
 ## Up to date
 
-npx ts-node ./src/cli.ts -k ../adrena-keypairs/admin.json init\
+npx ts-node app/src/cli.ts -k adrena-keypairs/admin.json init\
     --min-signatures 1\
+    --lm-staking-reward-token-mint <>
+    --governance-program <>
+    --governance-realm <>
     --coreContributorBucketAllocation 100\
     --daoTreasuryBucketAllocation 100\
     --polBucketAllocation 100\
