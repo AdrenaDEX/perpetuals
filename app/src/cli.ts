@@ -8,6 +8,7 @@ import {
   BorrowRateParams,
   Fees,
   InitParams,
+  InitStakingParams,
   OracleParams,
   Permissions,
   PositionSide,
@@ -43,6 +44,12 @@ function init(adminSigners: PublicKey[], minSignatures: number, lmStakingRewardT
 
   return client.init(adminSigners, lmStakingRewardTokenMint, governanceProgram, governanceRealm, perpetualsConfig);
 }
+
+function initStaking(stakingType: "LM" | "LP"): Promise<void> {
+  const stakingConfig: InitStakingParams = {  };
+  return client.initStaking(stakingConfig);
+}
+
 
 function setAuthority(
   adminSigners: PublicKey[],
@@ -461,6 +468,59 @@ async function getAum(poolName: string): Promise<void> {
         options['ecosystem-bucket-allocation']
       );
     });
+
+  program
+    .command("init-staking")
+    .description("Initialize the staking")
+    .requiredOption("-t, --staking-type <string>", "Type of staking")
+    .action(async (options) => {
+      await initStaking(
+        options['staking-type']
+      );
+    });
+
+  program
+    .command("init-user-staking")
+    .description("Initialize the user staking")
+    .requiredOption("-o, --owner <string>", "Owner of the staking")
+    .requiredOption("-r, --reward-token-account <string>", "Reward token account of the stake owner")
+    .requiredOption("-l, --lm-token-account <string>", "LM token account of the stake owner")
+    .requiredOption("-s, --staking-reward-token-vault <string>", "Staking reward token vault")
+    .requiredOption("-v, --staking-lm-reward-token-vault <string>", "Staking LM reward token vault")
+    .requiredOption("-u, --user-staking <string>", "User staking account")
+    .requiredOption("-t, --transfer-authority <string>", "Transfer authority account")
+    .requiredOption("-a, --user-staking-thread-authority <string>", "User staking thread authority account")
+    .requiredOption("-c, --stakes-claim-cron-thread <string>", "Stakes claim cron thread account")
+    .requiredOption("-p, --stakes-claim-payer <string>", "Stakes claim payer account")
+    .requiredOption("-k, --staking <string>", "Staking account")
+    .requiredOption("-x, --cortex <string>", "Cortex account")
+    .requiredOption("-e, --perpetuals <string>", "Perpetuals account")
+    .requiredOption("-m, --lm-token-mint <string>", "LM token mint account")
+    .requiredOption("-n, --staking-reward-token-mint <string>", "Staking reward token mint account")
+    .requiredOption("-i, --stakes-claim-cron-thread-id <int>", "Stakes claim cron thread ID")
+    .action(async (options) => {
+      await initUserStaking(
+        options['owner'],
+        options['reward-token-account'],
+        options['lm-token-account'],
+        options['staking-reward-token-vault'],
+        options['staking-lm-reward-token-vault'],
+        options['user-staking'],
+        options['transfer-authority'],
+        options['user-staking-thread-authority'],
+        options['stakes-claim-cron-thread'],
+        options['stakes-claim-payer'],
+        options['staking'],
+        options['cortex'],
+        options['perpetuals'],
+        options['lm-token-mint'],
+        options['staking-reward-token-mint'],
+        options['stakes-claim-cron-thread-id']
+      );
+    });
+
+
+
 
   program
     .command("set-authority")

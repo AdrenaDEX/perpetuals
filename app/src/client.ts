@@ -406,6 +406,37 @@ export class PerpetualsClient {
       });
   };
 
+  initStaking = async (stakingType: string): Promise<void> => {
+    const stakingConfig: StakingParams = {
+      stakingType: stakingType,
+    };
+
+    await this.program.methods
+      .initStaking(stakingConfig)
+      .accounts({
+        upgradeAuthority: this.provider.wallet.publicKey,
+        multisig: this.multisig.publicKey,
+        transferAuthority: this.authority.publicKey,
+        lmStaking: this.lmStaking.publicKey,
+        cortex: this.cortex.publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
+        governanceTokenMint: this.governanceTokenMint.publicKey,
+        lmStakingStakedTokenVault: this.lmStakingStakedTokenVault.publicKey,
+        lmStakingRewardTokenVault: this.lmStakingRewardTokenVault.publicKey,
+        lmStakingLmRewardTokenVault: this.lmStakingLmRewardTokenVault.publicKey,
+        perpetuals: this.perpetuals.publicKey,
+        perpetualsProgram: this.program.programId,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc()
+      .catch((err) => {
+        console.error(err);
+        throw err;
+      });
+  };
+  
+
   setAdminSigners = async (
     admins: PublicKey[],
     minSignatures: number
