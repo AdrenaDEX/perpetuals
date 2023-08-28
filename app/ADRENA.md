@@ -1,17 +1,48 @@
 # CLI setup
 
-## Up to date
+## Keys
+
+admin: 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+
+alice: ArJJRUcbSrqqMuTrMdQNvBsXNokQBh3VCt2EDrg2aqnc
+martin: 7KQ7YgFmP4mz4p1UQnwrESZ58APxDZUoWyN5GXeXm4cz
+paul: 37dThGRY77tkRrnzgbfAkZaNnCQzGdQWnLCE9UD4MuPy
+
+usdc: 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC
+eth: 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr
+btc: HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM
+
+program: 6XwYJWNVgrmZuhYxPFy139P1MuXpVktpdHSLCKgmJQDR
+
+governance program: GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw
+
+## Upload program
+
+./scripts/change_program_id.sh
+anchor deploy --provider.cluster devnet --program-keypair ./target/deploy/perpetuals-keypair.json
+
+## Setup the Cortex
 
 npx ts-node app/src/cli.ts -k adrena-keypairs/admin.json init\
-    --min-signatures 1\
-    --lm-staking-reward-token-mint <>
-    --governance-program <>
-    --governance-realm <>
-    --coreContributorBucketAllocation 100\
-    --daoTreasuryBucketAllocation 100\
-    --polBucketAllocation 100\
-    --ecosystemBucketAllocation 100\
-     5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+ --min-signatures 1 \
+ --lm-staking-reward-token-mint 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC \
+ --governance-program GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw \
+ --governance-realm <> \
+ --coreContributorBucketAllocation 100 \
+ --daoTreasuryBucketAllocation 100 \
+ --polBucketAllocation 100 \
+ --ecosystemBucketAllocation 100 \
+ 6XwYJWNVgrmZuhYxPFy139P1MuXpVktpdHSLCKgmJQDR
+
+## Setup the Pool
+
+## Add Custodies
+
+## Init LP Staking
+
+##
+
+---
 
 ## Not up to date
 

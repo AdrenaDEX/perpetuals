@@ -8,7 +8,6 @@ import {
   BorrowRateParams,
   Fees,
   InitParams,
-  InitStakingParams,
   OracleParams,
   Permissions,
   PositionSide,
@@ -24,7 +23,17 @@ function initClient(clusterUrl: string, adminKeyPath: string): void {
   client.log("Client Initialized");
 }
 
-function init(adminSigners: PublicKey[], minSignatures: number, lmStakingRewardTokenMint: PublicKey, governanceProgram: PublicKey, governanceRealm: PublicKey, coreContributorBucketAllocation: BN, daoTreasuryBucketAllocation: BN, polBucketAllocation: BN, ecosystemBucketAllocation: BN): Promise<void> {
+function init(
+  adminSigners: PublicKey[],
+  minSignatures: number,
+  lmStakingRewardTokenMint: PublicKey,
+  governanceProgram: PublicKey,
+  governanceRealm: PublicKey,
+  coreContributorBucketAllocation: BN,
+  daoTreasuryBucketAllocation: BN,
+  polBucketAllocation: BN,
+  ecosystemBucketAllocation: BN
+): Promise<void> {
   // to be loaded from config file
   const perpetualsConfig: InitParams = {
     minSignatures: minSignatures,
@@ -39,17 +48,24 @@ function init(adminSigners: PublicKey[], minSignatures: number, lmStakingRewardT
     coreContributorBucketAllocation: coreContributorBucketAllocation,
     daoTreasuryBucketAllocation: daoTreasuryBucketAllocation,
     polBucketAllocation: polBucketAllocation,
-    ecosystemBucketAllocation: ecosystemBucketAllocation
+    ecosystemBucketAllocation: ecosystemBucketAllocation,
   };
 
-  return client.init(adminSigners, lmStakingRewardTokenMint, governanceProgram, governanceRealm, perpetualsConfig);
+  return client.init(
+    adminSigners,
+    lmStakingRewardTokenMint,
+    governanceProgram,
+    governanceRealm,
+    perpetualsConfig
+  );
 }
 
-function initStaking(stakingType: "LM" | "LP"): Promise<void> {
-  const stakingConfig: InitStakingParams = {  };
-  return client.initStaking(stakingConfig);
+function initLpStaking(
+  lpTokenMint: PublicKey,
+  stakingRewardTokenMint: PublicKey
+): Promise<void> {
+  return client.initLpStaking(lpTokenMint, stakingRewardTokenMint);
 }
-
 
 function setAuthority(
   adminSigners: PublicKey[],
@@ -94,7 +110,9 @@ async function addCustody(
   const oracleConfig: OracleParams = {
     maxPriceError: new BN(10_000),
     maxPriceAgeSec: 60,
-    oracleType: { [oracleType]: {} },
+    oracleType: {
+      [oracleType]: {},
+    },
     oracleAccount: tokenOracle,
   };
 
@@ -445,82 +463,62 @@ async function getAum(poolName: string): Promise<void> {
     .command("init")
     .description("Initialize the on-chain program")
     .requiredOption("-m, --min-signatures <int>", "Minimum signatures")
-    .requiredOption("-l, --lm-staking-reward-token-mint", "mint address of the staking reward token")
+    .requiredOption(
+      "-l, --lm-staking-reward-token-mint",
+      "mint address of the staking reward token"
+    )
     .requiredOption("-g, --governance-program", "Governance program address")
     .requiredOption("-r, --governance-realm", "Governance realm address")
-    .requiredOption("-c, --core-contributor-bucket-allocation", "Core contributors allocation amount")
-    .requiredOption("-d, --dao-treasury-bucket-allocation", "DAO treasury allocation amount")
-    .requiredOption("-p, --pol-bucket-allocation", "POL bucket allocation amount")
-    .requiredOption("-e, --ecosystem-bucket-allocation", "Ecosystem allocation amount")
+    .requiredOption(
+      "-c, --core-contributor-bucket-allocation",
+      "Core contributors allocation amount"
+    )
+    .requiredOption(
+      "-d, --dao-treasury-bucket-allocation",
+      "DAO treasury allocation amount"
+    )
+    .requiredOption(
+      "-p, --pol-bucket-allocation",
+      "POL bucket allocation amount"
+    )
+    .requiredOption(
+      "-e, --ecosystem-bucket-allocation",
+      "Ecosystem allocation amount"
+    )
     .argument("<pubkey...>", "Admin public keys")
     .action(async (args, options) => {
       console.log("args -> " + args);
       console.log("options ->" + options);
       await init(
         args.map((x) => new PublicKey(x)),
-        options['min-signatures'],
-        options['lm-staking-reward-token-mint'],
-        options['governance-program'],
-        options['governance-realm'],
-        options['core-contributor-bucket-allocation'],
-        options['dao-treasury-bucket-allocation'],
-        options['pol-bucket-allocation'],
-        options['ecosystem-bucket-allocation']
+        options["min-signatures"],
+        options["lm-staking-reward-token-mint"],
+        options["governance-program"],
+        options["governance-realm"],
+        options["core-contributor-bucket-allocation"],
+        options["dao-treasury-bucket-allocation"],
+        options["pol-bucket-allocation"],
+        options["ecosystem-bucket-allocation"]
       );
     });
 
   program
-    .command("init-staking")
-    .description("Initialize the staking")
-    .requiredOption("-t, --staking-type <string>", "Type of staking")
+    .command("init-lp-staking")
+    .description("Initialize staking for given LP token mint")
+    .requiredOption(
+      "-m, --lp-token-mint <string>",
+      "Lp token mint to initialize staking for"
+    )
+    .requiredOption(
+      "-s, --staking-reward-token-mint <string>",
+      "Token mint to reward stakers with"
+    )
     .action(async (options) => {
-      await initStaking(
-        options['staking-type']
+      await initLpStaking(
+        options["lp-token-mint"],
+        options["staking-reward-token-mint"]
       );
     });
-
-  program
-    .command("init-user-staking")
-    .description("Initialize the user staking")
-    .requiredOption("-o, --owner <string>", "Owner of the staking")
-    .requiredOption("-r, --reward-token-account <string>", "Reward token account of the stake owner")
-    .requiredOption("-l, --lm-token-account <string>", "LM token account of the stake owner")
-    .requiredOption("-s, --staking-reward-token-vault <string>", "Staking reward token vault")
-    .requiredOption("-v, --staking-lm-reward-token-vault <string>", "Staking LM reward token vault")
-    .requiredOption("-u, --user-staking <string>", "User staking account")
-    .requiredOption("-t, --transfer-authority <string>", "Transfer authority account")
-    .requiredOption("-a, --user-staking-thread-authority <string>", "User staking thread authority account")
-    .requiredOption("-c, --stakes-claim-cron-thread <string>", "Stakes claim cron thread account")
-    .requiredOption("-p, --stakes-claim-payer <string>", "Stakes claim payer account")
-    .requiredOption("-k, --staking <string>", "Staking account")
-    .requiredOption("-x, --cortex <string>", "Cortex account")
-    .requiredOption("-e, --perpetuals <string>", "Perpetuals account")
-    .requiredOption("-m, --lm-token-mint <string>", "LM token mint account")
-    .requiredOption("-n, --staking-reward-token-mint <string>", "Staking reward token mint account")
-    .requiredOption("-i, --stakes-claim-cron-thread-id <int>", "Stakes claim cron thread ID")
-    .action(async (options) => {
-      await initUserStaking(
-        options['owner'],
-        options['reward-token-account'],
-        options['lm-token-account'],
-        options['staking-reward-token-vault'],
-        options['staking-lm-reward-token-vault'],
-        options['user-staking'],
-        options['transfer-authority'],
-        options['user-staking-thread-authority'],
-        options['stakes-claim-cron-thread'],
-        options['stakes-claim-payer'],
-        options['staking'],
-        options['cortex'],
-        options['perpetuals'],
-        options['lm-token-mint'],
-        options['staking-reward-token-mint'],
-        options['stakes-claim-cron-thread-id']
-      );
-    });
-
-
-
 
   program
     .command("set-authority")

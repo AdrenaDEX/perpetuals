@@ -34,6 +34,7 @@ import {
   ProfitAndLoss,
   SwapAmountAndFees,
   Custody,
+  InitStakingParams,
 } from "./types";
 
 export class PerpetualsClient {
@@ -74,9 +75,18 @@ export class PerpetualsClient {
     this.lmStaking = this.findProgramAddress("staking", this.lmTokenMint);
     this.cortex = this.findProgramAddress("cortex");
     this.governanceTokenMint = this.findProgramAddress("governance_token_mint");
-    this.lmStakingStakedTokenVault = this.findProgramAddress("staking_staked_token_vault", this.lmStaking);
-    this.lmStakingRewardTokenVault = this.findProgramAddress("staking_reward_token_vault", this.lmStaking);
-    this.lmStakingLmRewardTokenVault = this.findProgramAddress("staking_lm_reward_token_vault", this.lmStaking);
+    this.lmStakingStakedTokenVault = this.findProgramAddress(
+      "staking_staked_token_vault",
+      this.lmStaking
+    );
+    this.lmStakingRewardTokenVault = this.findProgramAddress(
+      "staking_reward_token_vault",
+      this.lmStaking
+    );
+    this.lmStakingLmRewardTokenVault = this.findProgramAddress(
+      "staking_lm_reward_token_vault",
+      this.lmStaking
+    );
 
     BN.prototype.toJSON = function () {
       return this.toString(10);
@@ -360,7 +370,13 @@ export class PerpetualsClient {
   ///////
   // instructions
 
-  init = async (admins: PublicKey[], lmStakingRewardTokenMint: PublicKey, governance_program: PublicKey, governance_realm: PublicKey, config: InitParams): Promise<void> => {
+  init = async (
+    admins: PublicKey[],
+    lmStakingRewardTokenMint: PublicKey,
+    governance_program: PublicKey,
+    governance_realm: PublicKey,
+    config: InitParams
+  ): Promise<void> => {
     const perpetualsProgramData = PublicKey.findProgramAddressSync(
       [this.program.programId.toBuffer()],
       new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
@@ -406,28 +422,53 @@ export class PerpetualsClient {
       });
   };
 
-  initStaking = async (stakingType: string): Promise<void> => {
-    const stakingConfig: StakingParams = {
-      stakingType: stakingType,
+  initLpStaking = async (
+    lpTokenMint: PublicKey,
+    stakingRewardTokenMint: PublicKey
+  ): Promise<void> => {
+    const stakingConfig: InitStakingParams = {
+      stakingType: {
+        lP: {},
+      },
     };
+
+    const { publicKey: lpStaking } = this.findProgramAddress(
+      "staking",
+      this.lmTokenMint
+    );
+
+    const { publicKey: stakingStakedTokenVault } = this.findProgramAddress(
+      "staking_staked_token_vault",
+      lpStaking
+    );
+    const { publicKey: stakingRewardTokenVault } = this.findProgramAddress(
+      "staking_reward_token_vault",
+      lpStaking
+    );
+    const { publicKey: stakingLmRewardTokenVault } = this.findProgramAddress(
+      "staking_lm_reward_token_vault",
+      lpStaking
+    );
 
     await this.program.methods
       .initStaking(stakingConfig)
       .accounts({
-        upgradeAuthority: this.provider.wallet.publicKey,
+        admin: this.admin.publicKey,
+        payer: this.provider.wallet.publicKey,
         multisig: this.multisig.publicKey,
         transferAuthority: this.authority.publicKey,
-        lmStaking: this.lmStaking.publicKey,
-        cortex: this.cortex.publicKey,
+        staking: lpStaking,
         lmTokenMint: this.lmTokenMint.publicKey,
-        governanceTokenMint: this.governanceTokenMint.publicKey,
-        lmStakingStakedTokenVault: this.lmStakingStakedTokenVault.publicKey,
-        lmStakingRewardTokenVault: this.lmStakingRewardTokenVault.publicKey,
-        lmStakingLmRewardTokenVault: this.lmStakingLmRewardTokenVault.publicKey,
+        cortex: this.cortex.publicKey,
         perpetuals: this.perpetuals.publicKey,
-        perpetualsProgram: this.program.programId,
+        stakingStakedTokenVault,
+        stakingRewardTokenVault,
+        stakingLmRewardTokenVault,
+        stakingRewardTokenMint,
+        stakingStakedTokenMint: lpTokenMint,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
       })
       .rpc()
       .catch((err) => {
@@ -435,7 +476,6 @@ export class PerpetualsClient {
         throw err;
       });
   };
-  
 
   setAdminSigners = async (
     admins: PublicKey[],
