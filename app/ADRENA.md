@@ -12,79 +12,217 @@ usdc: 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC
 eth: 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr
 btc: HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM
 
-program: 6XwYJWNVgrmZuhYxPFy139P1MuXpVktpdHSLCKgmJQDR
+program: CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia
 
 governance program: GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw
+
+governance realm: 65M6EkpcQ5bXfJBhkmgNT3gUTB2YtW5tmBbsDEP6Gfcj
+
+pool name: main-pool
+pool: B9HJCFyrzVStCNHnAkXRMG1wDk8XS9eyKuitmvxjn2Hf
+lp token mint: EqkG2sZrCw3dApo4LmeHvhAAEo7MwwjZNU2wxK5D6gbb
 
 ## Upload program
 
 ./scripts/change_program_id.sh
-anchor deploy --provider.cluster devnet --program-keypair ./target/deploy/perpetuals-keypair.json
+anchor deploy --program-name perpetuals --provider.cluster devnet --program-keypair ./target/deploy/perpetuals-keypair.json
+
+# Give program authority to admin (to be able to init)
+
+```
+solana program set-upgrade-authority <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY>
+```
+
+i.e
+
+```
+solana program set-upgrade-authority CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia --new-upgrade-authority 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+```
+
+## Get governance realm key
+
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-governance-realm-key --name <REALM_NAME>
+```
+
+i.e
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-governance-realm-key --name AdrenaTest
+```
 
 ## Setup the Cortex
 
-npx ts-node app/src/cli.ts -k adrena-keypairs/admin.json init\
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> init \
+ --min-signatures 1 \
+ --lm-staking-reward-token-mint <STAKING_REWARD_TOKEN_MINT> \
+ --governance-realm <GOVERNANCE_REALM> \
+ --core-contributor-bucket-allocation <ALLOCATION> \
+ --dao-treasury-bucket-allocation <ALLOCATION> \
+ --pol-bucket-allocation <ALLOCATION> \
+ --ecosystem-bucket-allocation <ALLOCATION> \
+ <ADMIN_PUBKEY1>
+```
+
+i.e
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json init \
  --min-signatures 1 \
  --lm-staking-reward-token-mint 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC \
- --governance-program GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw \
- --governance-realm <> \
- --coreContributorBucketAllocation 100 \
- --daoTreasuryBucketAllocation 100 \
- --polBucketAllocation 100 \
- --ecosystemBucketAllocation 100 \
- 6XwYJWNVgrmZuhYxPFy139P1MuXpVktpdHSLCKgmJQDR
+ --governance-realm 65M6EkpcQ5bXfJBhkmgNT3gUTB2YtW5tmBbsDEP6Gfcj \
+ --core-contributor-bucket-allocation 100000 \
+ --dao-treasury-bucket-allocation 100000 \
+ --pol-bucket-allocation 100000 \
+ --ecosystem-bucket-allocation 100000 \
+ 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+```
+
+## Create the governance realm
+
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> create-governance-realm \
+--name <REALM_NAME> \
+--min-community-weight-to-create-governance <WEIGHT>
+```
+
+i.e
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json create-governance-realm \
+--name AdrenaTest \
+--min-community-weight-to-create-governance 10000
+```
+
+You may access the new realm here:
+
+```
+https://app.realms.today/dao/<REALM_KEY>?cluster=devnet
+```
+
+i.e
+
+```
+https://app.realms.today/dao/65M6EkpcQ5bXfJBhkmgNT3gUTB2YtW5tmBbsDEP6Gfcj?cluster=devnet
+```
+
+## Get Multisig / Perpetuals
+
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-multisig
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-perpetuals
+```
+
+i.e
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-multisig
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-perpetuals
+```
 
 ## Setup the Pool
 
-## Add Custodies
+### Add the pool
 
-## Init LP Staking
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> add-pool <POOL_NAME>
+```
 
-##
+i.e
 
----
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-pool main-pool
+```
 
-## Not up to date
+### Get pool info
 
-npx ts-node ./src/cli.ts -k ~/adrena-keypairs/admin.json get-multisig
-npx ts-node ./src/cli.ts -k ~/adrena-keypairs/admin.json get-perpetuals
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-pool <POOL_NAME>
+```
 
-npx ts-node ./src/cli.ts -k ~/adrena-keypairs/admin.json add-pool pool3
+i.e
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-custody pool3 -t pyth -s 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC 5SSkXsEKQepHHAewytPVwdej4epN1nxgLVM84L4KXgy7
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-pool main-pool
+```
 
-# ETH
+### Get LP token mint
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-custody pool3 -t pyth 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-lp-token-mint <POOL_NAME>
+```
 
-# BTC
+i.e
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-custody pool3 -t pyth HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-lp-token-mint main-pool
+```
 
-# SOL
+### Init LP Staking
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-custody pool3 -t pyth So11111111111111111111111111111111111111112 J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> init-lp-staking <POOL_NAME> --staking-reward-token-mint <STAKING_REWARD_TOKEN_MINT>
+```
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json get-pool pool3
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json get-custodies pool3
+i.e
 
-# Initialize lm token ATA
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json init-lp-staking main-pool --staking-reward-token-mint 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC
+```
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json get-lp-token-mint pool3
-spl-token create-account 2fHi57To3JsfoJP967rH6e1cv6AvtWQarxy4yiv4FuYU --owner 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb --fee-payer ~/adrena-keypairs/admin.json
+## Add Custodies with Pyth oracle
 
-# Add USDC liquidity
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> add-custody <POOL_NAME> -t pyth [--stablecoin] <TOKEN_MINT> <TOKEN_ORACLE_ACCOUNT>
+```
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity pool3 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC --amount-in 10000000 --min-amount-out 0
+i.e
 
-# Add ETH liquidity
+```
+// USDC
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-custody main-pool --oracletype pyth --stablecoin 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC 5SSkXsEKQepHHAewytPVwdej4epN1nxgLVM84L4KXgy7
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity pool3 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr --amount-in 5000 --min-amount-out 0
+// ETH
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-custody main-pool --oracletype pyth 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw
 
-# Add BTC liquidity
+// BTC
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-custody main-pool --oracletype pyth HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM HovQMDrbAgAYPCmHVSrezcSmkMtXSSUsLDFANExrZh2J
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity pool3 HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM --amount-in 250 --min-amount-out 0
+// SOL
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-custody main-pool --oracletype pyth So11111111111111111111111111111111111111112 J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix
+```
 
-# Add SOL liquidity
+## Add Liquidity to custodies
 
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity pool3 So11111111111111111111111111111111111111112 --amount-in 500000000 --min-amount-out 0
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> add-liquidity <POOL_NAME> <TOKEN_MINT> --amount-in <AMOUNT_IN> --min-amount-out <AMOUNT_OUT>
+```
+
+i.e
+
+```
+// Add USDC liquidity
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity main-pool 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC --amount-in 10000000 --min-amount-out 0
+
+// Add ETH liquidity
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity main-pool 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr --amount-in 5000 --min-amount-out 0
+
+// Add BTC liquidity
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity main-pool HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM --amount-in 250 --min-amount-out 0
+
+// Add SOL liquidity
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity main-pool So11111111111111111111111111111111111111112 --amount-in 500000000 --min-amount-out 0
+```
+
+## Get custodies
+
+```
+npx ts-node src/cli.ts -k <ADMIN_KEYPAIR> get-custodies <POOL_NAME>
+```
+
+i.e
+
+```
+npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json get-custodies main-pool
+```
