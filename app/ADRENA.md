@@ -22,12 +22,14 @@ pool name: main-pool
 pool: B9HJCFyrzVStCNHnAkXRMG1wDk8XS9eyKuitmvxjn2Hf
 lp token mint: EqkG2sZrCw3dApo4LmeHvhAAEo7MwwjZNU2wxK5D6gbb
 
+Orex local wallet: CqJVUVbxJae8GfYsSooA5qzjHmoZusB1Hni7Ed1eEDeH
+
 ## Upload program
 
 ./scripts/change_program_id.sh
 anchor deploy --program-name perpetuals --provider.cluster devnet --program-keypair ./target/deploy/perpetuals-keypair.json
 
-# Give program authority to admin (to be able to init)
+### Give program authority to admin (to be able to init)
 
 ```
 solana program set-upgrade-authority <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY>
@@ -37,6 +39,18 @@ i.e
 
 ```
 solana program set-upgrade-authority CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia --new-upgrade-authority 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+```
+
+### Give program authority back to local wallet to redeploy
+
+```
+solana program set-upgrade-authority <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY> -k <CURRENT_AUTHORITY_KEYPAIR>
+```
+
+i.e
+
+```
+solana program set-upgrade-authority CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia --new-upgrade-authority CqJVUVbxJae8GfYsSooA5qzjHmoZusB1Hni7Ed1eEDeH -k 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
 ```
 
 ## Get governance realm key
