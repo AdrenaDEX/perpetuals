@@ -32,6 +32,8 @@ pub struct Fees {
     pub open_position: u64,
     pub close_position: u64,
     pub liquidation: u64,
+    // This is initially intended to be the protocol revenues (a fee on the fees)
+    // In the case of ADX, this will be repurposed to go to the ADX staking rewards (and give a share of the revenue to ADX holders)
     pub protocol_share: u64,
 }
 
@@ -43,6 +45,16 @@ pub struct FeesStats {
     pub open_position_usd: u64,
     pub close_position_usd: u64,
     pub liquidation_usd: u64,
+}
+
+#[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
+pub struct RewardsStats {
+    pub swap_lm: u64,
+    pub add_liquidity_lm: u64,
+    pub remove_liquidity_lm: u64,
+    pub open_position_lm: u64,
+    pub close_position_lm: u64,
+    pub liquidation_lm: u64,
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -145,6 +157,7 @@ pub struct Custody {
     // dynamic variables
     pub assets: Assets,
     pub collected_fees: FeesStats,
+    pub distributed_rewards: RewardsStats,
     pub volume_stats: VolumeStats,
     pub trade_stats: TradeStats,
     pub long_positions: PositionStats,
@@ -154,6 +167,16 @@ pub struct Custody {
     // bumps for address validation
     pub bump: u8,
     pub token_account_bump: u8,
+}
+
+pub fn get_custody_mint_from_account_info(account_info: &AccountInfo<'_>) -> Pubkey {
+    let data_slice = &account_info.data.borrow()[40..72];
+
+    let mut pubkey_bytes = [0u8; 32];
+
+    pubkey_bytes.copy_from_slice(data_slice);
+
+    Pubkey::from(pubkey_bytes)
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -189,6 +212,7 @@ pub struct DeprecatedCustody {
     // dynamic variables
     pub assets: Assets,
     pub collected_fees: FeesStats,
+    pub distributed_rewards: RewardsStats,
     pub volume_stats: VolumeStats,
     pub trade_stats: TradeStats,
     pub long_positions: PositionStats,

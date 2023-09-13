@@ -13,9 +13,16 @@ import {
   Keypair,
   SYSVAR_RENT_PUBKEY,
   AccountMeta,
+  ComputeBudgetProgram,
+  Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { sha256 } from "js-sha256";
+import {
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { sha256 } from "@noble/hashes/sha256";
 import { encode } from "bs58";
 import { readFileSync } from "fs";
 import {
@@ -35,6 +42,22 @@ import {
   SwapAmountAndFees,
   Custody,
 } from "./types";
+import {
+  GoverningTokenConfigAccountArgs,
+  GoverningTokenType,
+  MintMaxVoteWeightSource,
+  MintMaxVoteWeightSourceType,
+  getGovernanceProgramVersion,
+  getGoverningTokenHoldingAddress,
+  getRealmConfigAddress,
+  getTokenOwnerRecordAddress,
+  withCreateGovernance,
+  withCreateRealm,
+} from "@solana/spl-governance";
+
+const governanceProgram = new PublicKey(
+  "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"
+);
 
 export class PerpetualsClient {
   provider: AnchorProvider;
@@ -45,6 +68,13 @@ export class PerpetualsClient {
   multisig: { publicKey: PublicKey; bump: number };
   authority: { publicKey: PublicKey; bump: number };
   perpetuals: { publicKey: PublicKey; bump: number };
+  lmTokenMint: { publicKey: PublicKey; bump: number };
+  lmStaking: { publicKey: PublicKey; bump: number };
+  cortex: { publicKey: PublicKey; bump: number };
+  governanceTokenMint: { publicKey: PublicKey; bump: number };
+  lmStakingStakedTokenVault: { publicKey: PublicKey; bump: number };
+  lmStakingRewardTokenVault: { publicKey: PublicKey; bump: number };
+  lmStakingLmRewardTokenVault: { publicKey: PublicKey; bump: number };
 
   constructor(clusterUrl: string, adminKey: string) {
     this.provider = AnchorProvider.local(clusterUrl, {
@@ -63,11 +93,36 @@ export class PerpetualsClient {
     this.multisig = this.findProgramAddress("multisig");
     this.authority = this.findProgramAddress("transfer_authority");
     this.perpetuals = this.findProgramAddress("perpetuals");
+    this.lmTokenMint = this.findProgramAddress("lm_token_mint");
+    this.lmStaking = this.findProgramAddress("staking", [
+      this.lmTokenMint.publicKey,
+    ]);
+    this.cortex = this.findProgramAddress("cortex");
+    this.governanceTokenMint = this.findProgramAddress("governance_token_mint");
+    this.lmStakingStakedTokenVault = this.findProgramAddress(
+      "staking_staked_token_vault",
+      [this.lmStaking.publicKey]
+    );
+    this.lmStakingRewardTokenVault = this.findProgramAddress(
+      "staking_reward_token_vault",
+      [this.lmStaking.publicKey]
+    );
+    this.lmStakingLmRewardTokenVault = this.findProgramAddress(
+      "staking_lm_reward_token_vault",
+      [this.lmStaking.publicKey]
+    );
 
     BN.prototype.toJSON = function () {
       return this.toString(10);
     };
   }
+
+  getVestPda = (
+    owner: PublicKey
+  ): {
+    publicKey: PublicKey;
+    bump: number;
+  } => this.findProgramAddress("vest", [owner]);
 
   findProgramAddress = (
     label: string,
@@ -123,7 +178,7 @@ export class PerpetualsClient {
   };
 
   getPoolKey = (name: string): PublicKey => {
-    return this.findProgramAddress("pool", name).publicKey;
+    return this.findProgramAddress("pool", [name]).publicKey;
   };
 
   getPool = async (name: string) => {
@@ -148,6 +203,16 @@ export class PerpetualsClient {
       this.getPoolKey(poolName),
       tokenMint,
     ]).publicKey;
+  };
+
+  getDaoRealmKey = (realmName: string): PublicKey =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("governance"), Buffer.from(realmName)],
+      governanceProgram
+    )[0];
+
+  getGovernanceTokenKey = (): PublicKey => {
+    return this.findProgramAddress("governance_token_mint").publicKey;
   };
 
   getCustodyTokenAccountKey = (
@@ -320,7 +385,11 @@ export class PerpetualsClient {
   };
 
   getAccountDiscriminator = (name: string): Buffer => {
-    return Buffer.from(sha256.digest(`account:${name}`)).slice(0, 8);
+    return Buffer.from(sha256(`account:${name}`).slice(0, 8));
+  };
+
+  getMethodDiscriminator = (name: string): Buffer => {
+    return Buffer.from(sha256(`global:${name}`).slice(0, 8));
   };
 
   getTime(): number {
@@ -346,7 +415,173 @@ export class PerpetualsClient {
   ///////
   // instructions
 
-  init = async (admins: PublicKey[], config: InitParams): Promise<void> => {
+  createDaoGovernance = async (realmName: string): Promise<string> => {
+    const realmPubkey = this.getDaoRealmKey(realmName);
+
+    const instructions: TransactionInstruction[] = [];
+
+    const programVersion = await getGovernanceProgramVersion(
+      this.provider.connection,
+      governanceProgram
+    );
+
+    // TODO
+    // withCreateGovernance(instructions, governanceProgram, programVersion);
+    return "";
+  };
+
+  createDaoRealm = async (
+    name: string,
+    minCommunityWeightToCreateGovernance: BN
+  ): Promise<PublicKey> => {
+    // Use the Admin as the authority
+    const realmAuthority = this.provider.wallet.publicKey;
+    const payer = realmAuthority;
+
+    const instructions: TransactionInstruction[] = [];
+
+    const programVersion = await getGovernanceProgramVersion(
+      this.provider.connection,
+      governanceProgram
+    );
+
+    const communityMint = this.getGovernanceTokenKey();
+
+    const communityMintMaxVoteWeightSource = new MintMaxVoteWeightSource({
+      /// Fraction (10^10 precision) of the governing mint supply is used as max vote weight
+      /// The default is 100% (10^10) to use all available mint supply for voting
+      type: MintMaxVoteWeightSourceType.SupplyFraction,
+
+      // 100%
+      value: new BN(100),
+    });
+
+    const communityTokenConfig: GoverningTokenConfigAccountArgs =
+      new GoverningTokenConfigAccountArgs({
+        tokenType: GoverningTokenType.Membership,
+        voterWeightAddin: undefined,
+        maxVoterWeightAddin: undefined,
+      });
+
+    const realmPubkey = await withCreateRealm(
+      instructions,
+      governanceProgram,
+      programVersion,
+      name,
+      realmAuthority,
+      communityMint,
+      payer,
+      undefined /* council mint */,
+      communityMintMaxVoteWeightSource,
+      // Governance token mint is 6 decimals
+      new BN(10 ** 6).mul(minCommunityWeightToCreateGovernance),
+      communityTokenConfig,
+      undefined /* councilTokenConfig */
+    );
+
+    const tx = new Transaction();
+
+    tx.add(...instructions);
+    tx.recentBlockhash = (
+      await this.provider.connection.getLatestBlockhash()
+    ).blockhash;
+    tx.feePayer = payer;
+
+    const signedTransaction = await this.provider.wallet.signTransaction(tx);
+
+    const txId = await this.provider.connection.sendRawTransaction(
+      signedTransaction.serialize()
+    );
+
+    const confirmationStatus =
+      await this.provider.connection.confirmTransaction(txId, "confirmed");
+
+    if (confirmationStatus.value.err) {
+      console.error(`Transaction failed: ${confirmationStatus.value.err}`);
+    } else {
+      console.log(`Transaction succeeded: ${txId}`);
+    }
+
+    return realmPubkey;
+  };
+
+  claimVest = async (): Promise<string> => {
+    const lmTokenAccount = await getAssociatedTokenAddress(
+      this.lmTokenMint.publicKey,
+      this.provider.wallet.publicKey
+    );
+
+    const cortexAccount = await this.program.account.cortex.fetch(
+      this.cortex.publicKey
+    );
+
+    const preInstructions: TransactionInstruction[] = [];
+
+    /*const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 500_000,
+    });
+
+    preInstructions.push(modifyComputeUnits);*/
+
+    // Create LM ATA if doesn't exist
+    if (!(await this.provider.connection.getAccountInfo(lmTokenAccount))) {
+      preInstructions.push(
+        createAssociatedTokenAccountInstruction(
+          this.provider.wallet.publicKey,
+          lmTokenAccount,
+          this.provider.wallet.publicKey,
+          this.lmTokenMint.publicKey
+        )
+      );
+    }
+
+    return this.program.methods
+      .claimVest()
+      .accounts({
+        owner: this.provider.wallet.publicKey,
+        receivingAccount: lmTokenAccount,
+        transferAuthority: this.authority.publicKey,
+        cortex: this.cortex.publicKey,
+        perpetuals: this.perpetuals.publicKey,
+        vest: this.getVestPda(this.provider.wallet.publicKey).publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
+        governanceTokenMint: this.governanceTokenMint.publicKey,
+        governanceRealm: cortexAccount.governanceRealm,
+        governanceRealmConfig: await getRealmConfigAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm
+        ),
+        governanceGoverningTokenHolding: await getGoverningTokenHoldingAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm,
+          this.governanceTokenMint.publicKey
+        ),
+        governanceGoverningTokenOwnerRecord: await getTokenOwnerRecordAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm,
+          this.governanceTokenMint.publicKey,
+          this.provider.wallet.publicKey
+        ),
+        governanceProgram,
+        perpetualsProgram: this.program.programId,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .preInstructions(preInstructions)
+      .rpc()
+      .catch((err) => {
+        console.error(err);
+        throw err;
+      });
+  };
+
+  init = async (
+    admins: PublicKey[],
+    lmStakingRewardTokenMint: PublicKey,
+    governanceRealm: PublicKey,
+    config: InitParams
+  ): Promise<void> => {
     const perpetualsProgramData = PublicKey.findProgramAddressSync(
       [this.program.programId.toBuffer()],
       new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
@@ -362,24 +597,203 @@ export class PerpetualsClient {
       });
     }
 
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 500_000,
+    });
+
     await this.program.methods
       .init(config)
       .accounts({
         upgradeAuthority: this.provider.wallet.publicKey,
         multisig: this.multisig.publicKey,
         transferAuthority: this.authority.publicKey,
+        lmStaking: this.lmStaking.publicKey,
+        cortex: this.cortex.publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
+        governanceTokenMint: this.governanceTokenMint.publicKey,
+        lmStakingStakedTokenVault: this.lmStakingStakedTokenVault.publicKey,
+        lmStakingRewardTokenVault: this.lmStakingRewardTokenVault.publicKey,
+        lmStakingLmRewardTokenVault: this.lmStakingLmRewardTokenVault.publicKey,
+        lmStakingRewardTokenMint: lmStakingRewardTokenMint,
         perpetuals: this.perpetuals.publicKey,
         perpetualsProgram: this.program.programId,
         perpetualsProgramData,
+        governanceRealm,
+        governanceProgram,
         systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
+      .preInstructions([modifyComputeUnits])
       .remainingAccounts(adminMetas)
       .rpc()
       .catch((err) => {
         console.error(err);
         throw err;
       });
+  };
+
+  // Using normal way of building the Transaction triggers a borsh error
+  // due to the enum not being handled properly
+  // reverted to a manual build of the ix with manual data encoding
+  initLpStaking = async (
+    poolName: string,
+    stakingRewardTokenMint: PublicKey
+  ): Promise<void> => {
+    const lpTokenMint = this.getPoolLpTokenKey(poolName);
+
+    const { publicKey: lpStaking } = this.findProgramAddress("staking", [
+      lpTokenMint,
+    ]);
+
+    const { publicKey: stakingStakedTokenVault } = this.findProgramAddress(
+      "staking_staked_token_vault",
+      [lpStaking]
+    );
+    const { publicKey: stakingRewardTokenVault } = this.findProgramAddress(
+      "staking_reward_token_vault",
+      [lpStaking]
+    );
+    const { publicKey: stakingLmRewardTokenVault } = this.findProgramAddress(
+      "staking_lm_reward_token_vault",
+      [lpStaking]
+    );
+
+    const dataBuff = Buffer.from([
+      ...this.getMethodDiscriminator("init_staking"),
+      // LP or LM enum
+      1, // 1 = LP
+    ]);
+
+    const ix = new TransactionInstruction({
+      data: dataBuff,
+      keys: [
+        {
+          // admin
+          isSigner: true,
+          isWritable: false,
+          pubkey: this.admin.publicKey,
+        },
+        {
+          // payer
+          isSigner: true,
+          isWritable: true,
+          pubkey: this.provider.wallet.publicKey,
+        },
+        {
+          // multisig
+          isSigner: false,
+          isWritable: true,
+          pubkey: this.multisig.publicKey,
+        },
+        {
+          // transferAuthority
+          isSigner: false,
+          isWritable: false,
+          pubkey: this.authority.publicKey,
+        },
+        {
+          // staking
+          isSigner: false,
+          isWritable: true,
+          pubkey: lpStaking,
+        },
+        {
+          // lmTokenMint
+          isSigner: false,
+          isWritable: true,
+          pubkey: this.lmTokenMint.publicKey,
+        },
+        {
+          // cortex
+          isSigner: false,
+          isWritable: true,
+          pubkey: this.cortex.publicKey,
+        },
+        {
+          // perpetuals
+          isSigner: false,
+          isWritable: true,
+          pubkey: this.perpetuals.publicKey,
+        },
+        {
+          // stakingStakedTokenVault
+          isSigner: false,
+          isWritable: true,
+          pubkey: stakingStakedTokenVault,
+        },
+        {
+          // stakingRewardTokenVault
+          isSigner: false,
+          isWritable: true,
+          pubkey: stakingRewardTokenVault,
+        },
+        {
+          // stakingLmRewardTokenVault
+          isSigner: false,
+          isWritable: true,
+          pubkey: stakingLmRewardTokenVault,
+        },
+        {
+          // stakingRewardTokenMint
+          isSigner: false,
+          isWritable: false,
+          pubkey: stakingRewardTokenMint,
+        },
+        {
+          // stakingStakedTokenMint
+          isSigner: false,
+          isWritable: false,
+          pubkey: lpTokenMint,
+        },
+        {
+          // systemProgram
+          isSigner: false,
+          isWritable: false,
+          pubkey: SystemProgram.programId,
+        },
+        {
+          // tokenProgram
+          isSigner: false,
+          isWritable: false,
+          pubkey: TOKEN_PROGRAM_ID,
+        },
+        {
+          // rent
+          isSigner: false,
+          isWritable: false,
+          pubkey: SYSVAR_RENT_PUBKEY,
+        },
+      ],
+      programId: this.program.programId,
+    });
+
+    const tx = new Transaction();
+
+    tx.add(ix);
+
+    tx.feePayer = this.provider.wallet.publicKey;
+
+    const { blockhash, lastValidBlockHeight } =
+      await this.provider.connection.getLatestBlockhash();
+
+    tx.recentBlockhash = blockhash;
+
+    const signedTransaction = await this.provider.wallet.signTransaction(tx);
+    const txId = await this.provider.connection.sendRawTransaction(
+      signedTransaction.serialize()
+    );
+
+    console.log(`Transaction succeeded: ${txId}`);
+
+    const resp = await this.provider.connection.confirmTransaction({
+      blockhash,
+      lastValidBlockHeight,
+      signature: txId,
+    });
+
+    if (resp.value.err) {
+      throw resp.value.err;
+    }
   };
 
   setAdminSigners = async (
@@ -587,6 +1001,56 @@ export class PerpetualsClient {
   ): Promise<void> => {
     const lpTokenMint = this.getPoolLpTokenKey(poolName);
 
+    const lpStaking = this.findProgramAddress("staking", [
+      lpTokenMint,
+    ]).publicKey;
+
+    const lpStakingAccount = await this.program.account.staking.fetch(
+      lpStaking
+    );
+
+    const stakingRewardTokenMint: PublicKey = lpStakingAccount.rewardTokenMint;
+
+    const lpTokenAccount = await getAssociatedTokenAddress(
+      lpTokenMint,
+      this.provider.wallet.publicKey
+    );
+
+    const lmTokenAccount = await getAssociatedTokenAddress(
+      this.lmTokenMint.publicKey,
+      this.provider.wallet.publicKey
+    );
+
+    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 500_000,
+    });
+
+    const preInstructions: TransactionInstruction[] = [modifyComputeUnits];
+
+    // init LP token ATA if it doesn't exist
+    if (!(await this.provider.connection.getAccountInfo(lpTokenAccount))) {
+      preInstructions.push(
+        createAssociatedTokenAccountInstruction(
+          this.provider.wallet.publicKey,
+          lpTokenAccount,
+          this.provider.wallet.publicKey,
+          lpTokenMint
+        )
+      );
+    }
+
+    // init LM token ATA if it doesn't exist
+    if (!(await this.provider.connection.getAccountInfo(lmTokenAccount))) {
+      preInstructions.push(
+        createAssociatedTokenAccountInstruction(
+          this.provider.wallet.publicKey,
+          lmTokenAccount,
+          this.provider.wallet.publicKey,
+          this.lmTokenMint.publicKey
+        )
+      );
+    }
+
     await this.program.methods
       .addLiquidity({ amountIn, minLpAmountOut })
       .accounts({
@@ -595,13 +1059,27 @@ export class PerpetualsClient {
           tokenMint,
           this.provider.wallet.publicKey
         ),
-        lpTokenAccount: await getAssociatedTokenAddress(
-          lpTokenMint,
-          this.provider.wallet.publicKey
-        ),
+        lpTokenAccount,
+        lmTokenAccount,
         transferAuthority: this.authority.publicKey,
+        lmStaking: this.lmStaking.publicKey,
+        lpStaking,
+        cortex: this.cortex.publicKey,
         perpetuals: this.perpetuals.publicKey,
         pool: this.getPoolKey(poolName),
+        stakingRewardTokenCustody: this.getCustodyKey(
+          poolName,
+          stakingRewardTokenMint
+        ),
+        stakingRewardTokenCustodyOracleAccount:
+          await this.getCustodyOracleAccountKey(
+            poolName,
+            stakingRewardTokenMint
+          ),
+        stakingRewardTokenCustodyTokenAccount: this.getCustodyTokenAccountKey(
+          poolName,
+          stakingRewardTokenMint
+        ),
         custody: this.getCustodyKey(poolName, tokenMint),
         custodyOracleAccount: await this.getCustodyOracleAccountKey(
           poolName,
@@ -611,10 +1089,19 @@ export class PerpetualsClient {
           poolName,
           tokenMint
         ),
+        lmStakingRewardTokenVault: this.lmStakingRewardTokenVault.publicKey,
+        lpStakingRewardTokenVault: this.findProgramAddress(
+          "staking_reward_token_vault",
+          [lpStaking]
+        ).publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
         lpTokenMint,
+        stakingRewardTokenMint,
         tokenProgram: TOKEN_PROGRAM_ID,
+        perpetualsProgram: this.program.programId,
       })
       .remainingAccounts(await this.getCustodyMetas(poolName))
+      .preInstructions(preInstructions)
       .rpc()
       .catch((err) => {
         console.error(err);
@@ -717,6 +1204,57 @@ export class PerpetualsClient {
         console.error(err);
         throw err;
       });
+  };
+
+  addVest = async (
+    beneficiaryWalet: PublicKey,
+    amount: BN,
+    unlockStartTimestamp: BN,
+    unlockEndTimestamp: BN
+  ): Promise<string> => {
+    const cortexAccount = await this.program.account.cortex.fetch(
+      this.cortex.publicKey
+    );
+
+    return this.program.methods
+      .addVest({
+        amount,
+        unlockStartTimestamp,
+        unlockEndTimestamp,
+      })
+      .accounts({
+        admin: this.admin.publicKey,
+        owner: beneficiaryWalet,
+        payer: this.provider.wallet.publicKey,
+        multisig: this.multisig.publicKey,
+        transferAuthority: this.authority.publicKey,
+        cortex: this.cortex.publicKey,
+        perpetuals: this.perpetuals.publicKey,
+        vest: this.getVestPda(beneficiaryWalet).publicKey,
+        lmTokenMint: this.lmTokenMint.publicKey,
+        governanceTokenMint: this.governanceTokenMint.publicKey,
+        governanceRealm: cortexAccount.governanceRealm,
+        governanceRealmConfig: await getRealmConfigAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm
+        ),
+        governanceGoverningTokenHolding: await getGoverningTokenHoldingAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm,
+          this.governanceTokenMint.publicKey
+        ),
+        governanceGoverningTokenOwnerRecord: await getTokenOwnerRecordAddress(
+          governanceProgram,
+          cortexAccount.governanceRealm,
+          this.governanceTokenMint.publicKey,
+          beneficiaryWalet
+        ),
+        governanceProgram,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .rpc();
   };
 
   getOraclePrice = async (

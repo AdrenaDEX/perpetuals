@@ -5,6 +5,7 @@ use {
         error::PerpetualsError,
         math,
         state::{
+            cortex::Cortex,
             custody::Custody,
             oracle::OraclePrice,
             perpetuals::Perpetuals,
@@ -36,6 +37,13 @@ pub struct RemoveCollateral<'info> {
         bump = perpetuals.transfer_authority_bump
     )]
     pub transfer_authority: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"cortex"],
+        bump = cortex.bump
+    )]
+    pub cortex: Box<Account<'info, Cortex>>,
 
     #[account(
         seeds = [b"perpetuals"],
@@ -96,6 +104,7 @@ pub struct RemoveCollateral<'info> {
     )]
     pub collateral_custody_token_account: Box<Account<'info, TokenAccount>>,
 
+    perpetuals_program: Program<'info, Perpetuals>,
     token_program: Program<'info, Token>,
 }
 
@@ -213,6 +222,7 @@ pub fn remove_collateral(
 
     // update custody stats
     msg!("Update custody stats");
+
     collateral_custody.assets.collateral =
         math::checked_sub(collateral_custody.assets.collateral, collateral)?;
 

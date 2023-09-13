@@ -1,9 +1,9 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
     perpetuals::{
         instructions::{AddLiquidityParams, RemoveLiquidityParams},
-        state::{custody::Custody, perpetuals::Perpetuals, pool::Pool},
+        state::{cortex::Cortex, custody::Custody, perpetuals::Perpetuals, pool::Pool},
     },
 };
 
@@ -22,6 +22,10 @@ pub async fn fixed_fees() {
             decimals: USDC_DECIMALS,
         }],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![utils::SetupCustodyWithLiquidityParams {
             setup_custody_params: utils::SetupCustodyParams {
@@ -41,6 +45,10 @@ pub async fn fixed_fees() {
             liquidity_amount: utils::scale(0, USDC_DECIMALS),
             payer_user_name: "alice",
         }],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -49,7 +57,7 @@ pub async fn fixed_fees() {
 
     // Check add liquidity fee
     {
-        instructions::test_add_liquidity(
+        test_instructions::add_liquidity(
             &test_setup.program_test_ctx,
             alice,
             &test_setup.payer_keypair,
@@ -74,7 +82,7 @@ pub async fn fixed_fees() {
 
             assert_eq!(
                 pool_account.aum_usd,
-                utils::scale_f64(999.95, USDC_DECIMALS).into(),
+                utils::scale_f64(993.965, USDC_DECIMALS).into(),
             );
 
             assert_eq!(
@@ -91,7 +99,7 @@ pub async fn fixed_fees() {
 
     // Check remove liquidity fee
     {
-        instructions::test_remove_liquidity(
+        test_instructions::remove_liquidity(
             &test_setup.program_test_ctx,
             alice,
             &test_setup.payer_keypair,
@@ -116,17 +124,17 @@ pub async fn fixed_fees() {
 
             assert_eq!(
                 pool_account.aum_usd,
-                utils::scale_f64(900.967705, USDC_DECIMALS).into(),
+                utils::scale_f64(896.789201, USDC_DECIMALS).into(),
             );
 
             assert_eq!(
                 custody_account.collected_fees.remove_liquidity_usd,
-                utils::scale_f64(3.061072, USDC_DECIMALS),
+                utils::scale_f64(3.042750, USDC_DECIMALS),
             );
 
             assert_eq!(
                 custody_account.assets.protocol_fees,
-                utils::scale_f64(0.057653, USDC_DECIMALS),
+                utils::scale_f64(0.057607, USDC_DECIMALS),
             );
         }
     }

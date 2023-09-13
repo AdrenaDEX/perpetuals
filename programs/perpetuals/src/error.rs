@@ -26,12 +26,18 @@ pub enum PerpetualsError {
     InvalidEnvironment,
     #[msg("Invalid pool state")]
     InvalidPoolState,
+    #[msg("Invalid vest state")]
+    InvalidVestState,
+    #[msg("Invalid stake state")]
+    InvalidStakeState,
     #[msg("Invalid custody state")]
     InvalidCustodyState,
     #[msg("Invalid collateral custody")]
     InvalidCollateralCustody,
     #[msg("Invalid position state")]
     InvalidPositionState,
+    #[msg("Invalid staking round state")]
+    InvalidStakingRoundState,
     #[msg("Invalid perpetuals config")]
     InvalidPerpetualsConfig,
     #[msg("Invalid pool config")]
@@ -56,4 +62,20 @@ pub enum PerpetualsError {
     InstructionNotAllowed,
     #[msg("Token utilization limit exceeded")]
     MaxUtilization,
+    #[msg("Governance program do not match Cortex's")]
+    InvalidGovernanceProgram,
+    #[msg("Governance realm do not match Cortex's")]
+    InvalidGovernanceRealm,
+    #[msg("Vesting unlock time is too close or passed")]
+    InvalidVestingUnlockTime,
+    #[msg("Invalid staking locking time")]
+    InvalidStakingLockingTime,
+    #[msg("Cannot found stake")]
+    CannotFoundStake,
+    #[msg("Stake is not resolved")]
+    UnresolvedStake,
+    #[msg("Reached bucket mint limit")]
+    BucketMintLimit,
+    #[msg("Genesis ALP add liquidity limit reached")]
+    GenesisAlpLimitReached,
 }

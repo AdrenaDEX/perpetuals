@@ -1,9 +1,9 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
     perpetuals::{
         instructions::OpenPositionParams,
-        state::{custody::PricingParams, position::Side},
+        state::{cortex::Cortex, custody::PricingParams, position::Side},
     },
 };
 
@@ -16,7 +16,7 @@ pub async fn min_max_leverage() {
             utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
-                    "usdc" => utils::scale(1_000, USDC_DECIMALS),
+                    "usdc" => utils::scale(1_000_000, USDC_DECIMALS),
                     "eth" => utils::scale(10_000, ETH_DECIMALS),
                 },
             },
@@ -39,6 +39,10 @@ pub async fn min_max_leverage() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -56,7 +60,7 @@ pub async fn min_max_leverage() {
                     fees: None,
                     borrow_rate: None,
                 },
-                liquidity_amount: utils::scale(1_000, USDC_DECIMALS),
+                liquidity_amount: utils::scale(1_000_000, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
             utils::SetupCustodyWithLiquidityParams {
@@ -85,6 +89,10 @@ pub async fn min_max_leverage() {
                 payer_user_name: "alice",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -94,7 +102,7 @@ pub async fn min_max_leverage() {
 
     // Martin: Open 1 ETH long position x10 should fail
     // Fails because fees increase ETH entry price
-    assert!(instructions::test_open_position(
+    assert!(test_instructions::open_position(
         &test_setup.program_test_ctx,
         martin,
         &test_setup.payer_keypair,
@@ -112,7 +120,7 @@ pub async fn min_max_leverage() {
     .is_err());
 
     // Martin: Open 1 ETH long position x0.5 should fail
-    assert!(instructions::test_open_position(
+    assert!(test_instructions::open_position(
         &test_setup.program_test_ctx,
         martin,
         &test_setup.payer_keypair,

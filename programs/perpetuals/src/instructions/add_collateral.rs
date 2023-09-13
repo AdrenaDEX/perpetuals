@@ -3,8 +3,9 @@
 use {
     crate::{
         error::PerpetualsError,
-        math,
+        math, program,
         state::{
+            cortex::Cortex,
             custody::Custody,
             oracle::OraclePrice,
             perpetuals::Perpetuals,
@@ -36,6 +37,13 @@ pub struct AddCollateral<'info> {
         bump = perpetuals.transfer_authority_bump
     )]
     pub transfer_authority: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"cortex"],
+        bump = cortex.bump
+    )]
+    pub cortex: Box<Account<'info, Cortex>>,
 
     #[account(
         seeds = [b"perpetuals"],
@@ -97,6 +105,7 @@ pub struct AddCollateral<'info> {
     pub collateral_custody_token_account: Box<Account<'info, TokenAccount>>,
 
     token_program: Program<'info, Token>,
+    perpetuals_program: Program<'info, program::Perpetuals>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -197,6 +206,7 @@ pub fn add_collateral(ctx: Context<AddCollateral>, params: &AddCollateralParams)
 
     // update custody stats
     msg!("Update custody stats");
+
     collateral_custody.assets.collateral =
         math::checked_add(collateral_custody.assets.collateral, params.collateral)?;
 

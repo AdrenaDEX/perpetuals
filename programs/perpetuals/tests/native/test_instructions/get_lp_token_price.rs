@@ -12,7 +12,7 @@ use {
 };
 
 #[allow(clippy::too_many_arguments)]
-pub async fn test_get_lp_token_price(
+pub async fn get_lp_token_price(
     program_test_ctx: &RwLock<ProgramTestContext>,
     payer: &Keypair,
     pool_pda: &Pubkey,

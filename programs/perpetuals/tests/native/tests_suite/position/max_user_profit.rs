@@ -1,9 +1,9 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
     perpetuals::{
         instructions::{ClosePositionParams, OpenPositionParams, SetCustomOraclePriceParams},
-        state::{custody::PricingParams, position::Side},
+        state::{cortex::Cortex, custody::PricingParams, position::Side},
     },
     solana_sdk::signer::Signer,
 };
@@ -17,7 +17,7 @@ pub async fn max_user_profit() {
             utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
-                    "usdc" => utils::scale(1_000, USDC_DECIMALS),
+                    "usdc" => utils::scale(1_000_000, USDC_DECIMALS),
                     "eth" => utils::scale(10_000, ETH_DECIMALS),
                 },
             },
@@ -40,6 +40,10 @@ pub async fn max_user_profit() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -57,7 +61,7 @@ pub async fn max_user_profit() {
                     fees: None,
                     borrow_rate: None,
                 },
-                liquidity_amount: utils::scale(1_000, USDC_DECIMALS),
+                liquidity_amount: utils::scale(1_000_000, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
             utils::SetupCustodyWithLiquidityParams {
@@ -84,6 +88,10 @@ pub async fn max_user_profit() {
                 payer_user_name: "alice",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -96,7 +104,7 @@ pub async fn max_user_profit() {
     let eth_mint = &test_setup.get_mint_by_name("eth");
 
     // Martin: Open 1 ETH long position x5
-    let position_pda = instructions::test_open_position(
+    let position_pda = test_instructions::open_position(
         &test_setup.program_test_ctx,
         martin,
         &test_setup.payer_keypair,
@@ -121,7 +129,7 @@ pub async fn max_user_profit() {
 
         let publish_time = utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await;
 
-        instructions::test_set_custom_oracle_price(
+        test_instructions::set_custom_oracle_price(
             &test_setup.program_test_ctx,
             admin_a,
             &test_setup.payer_keypair,
@@ -143,7 +151,7 @@ pub async fn max_user_profit() {
 
     utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
-    instructions::test_close_position(
+    test_instructions::close_position(
         &test_setup.program_test_ctx,
         martin,
         &test_setup.payer_keypair,

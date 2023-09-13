@@ -1,7 +1,10 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
-    perpetuals::instructions::{AddLiquidityParams, RemoveLiquidityParams},
+    perpetuals::{
+        instructions::{AddLiquidityParams, RemoveLiquidityParams},
+        state::cortex::Cortex,
+    },
     solana_sdk::signer::Signer,
 };
 
@@ -28,6 +31,10 @@ pub async fn min_max_ratio() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -67,6 +74,10 @@ pub async fn min_max_ratio() {
                 payer_user_name: "alice",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -75,7 +86,7 @@ pub async fn min_max_ratio() {
     let usdc_mint = &test_setup.get_mint_by_name("usdc");
 
     // Go over 60% ratio should trigger error
-    assert!(instructions::test_add_liquidity(
+    assert!(test_instructions::add_liquidity(
         &test_setup.program_test_ctx,
         alice,
         &test_setup.payer_keypair,
@@ -98,7 +109,7 @@ pub async fn min_max_ratio() {
 
     // Try to remove 35% of LP token as USDC (~1,050 USDC), lowering USDC ratio to ~23%
     // Going under 30% ratio should trigger error
-    assert!(instructions::test_remove_liquidity(
+    assert!(test_instructions::remove_liquidity(
         &test_setup.program_test_ctx,
         alice,
         &test_setup.payer_keypair,

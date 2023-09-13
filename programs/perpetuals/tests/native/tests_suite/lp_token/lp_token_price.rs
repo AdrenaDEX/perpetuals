@@ -1,7 +1,7 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
-    perpetuals::instructions::SetCustomOraclePriceParams,
+    perpetuals::{instructions::SetCustomOraclePriceParams, state::cortex::Cortex},
 };
 
 const USDC_DECIMALS: u8 = 6;
@@ -27,6 +27,10 @@ pub async fn lp_token_price() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -66,6 +70,10 @@ pub async fn lp_token_price() {
                 payer_user_name: "alice",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -75,7 +83,7 @@ pub async fn lp_token_price() {
 
     // Check LP token price after pool setup
     assert_eq!(
-        instructions::test_get_lp_token_price(
+        test_instructions::get_lp_token_price(
             &test_setup.program_test_ctx,
             &test_setup.payer_keypair,
             &test_setup.pool_pda,
@@ -83,7 +91,7 @@ pub async fn lp_token_price() {
         )
         .await
         .unwrap(),
-        1_074_388
+        1_051_947
     );
 
     // Increase asset price and check that lp token price increase
@@ -96,7 +104,7 @@ pub async fn lp_token_price() {
             let publish_time =
                 utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await;
 
-            instructions::test_set_custom_oracle_price(
+            test_instructions::set_custom_oracle_price(
                 &test_setup.program_test_ctx,
                 admin_a,
                 &test_setup.payer_keypair,
@@ -117,7 +125,7 @@ pub async fn lp_token_price() {
         }
 
         assert_eq!(
-            instructions::test_get_lp_token_price(
+            test_instructions::get_lp_token_price(
                 &test_setup.program_test_ctx,
                 &test_setup.payer_keypair,
                 &test_setup.pool_pda,
@@ -125,7 +133,7 @@ pub async fn lp_token_price() {
             )
             .await
             .unwrap(),
-            1_128_110
+            1_105_177
         );
     }
 
@@ -139,7 +147,7 @@ pub async fn lp_token_price() {
             let publish_time =
                 utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await;
 
-            instructions::test_set_custom_oracle_price(
+            test_instructions::set_custom_oracle_price(
                 &test_setup.program_test_ctx,
                 admin_a,
                 &test_setup.payer_keypair,
@@ -160,7 +168,7 @@ pub async fn lp_token_price() {
         }
 
         assert_eq!(
-            instructions::test_get_lp_token_price(
+            test_instructions::get_lp_token_price(
                 &test_setup.program_test_ctx,
                 &test_setup.payer_keypair,
                 &test_setup.pool_pda,
@@ -168,7 +176,7 @@ pub async fn lp_token_price() {
             )
             .await
             .unwrap(),
-            1_009_921
+            988_072
         );
     }
 }

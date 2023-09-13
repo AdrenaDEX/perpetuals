@@ -2,6 +2,7 @@
 
 #![allow(clippy::result_large_err)]
 
+pub mod adapters;
 pub mod error;
 pub mod instructions;
 pub mod math;
@@ -24,15 +25,29 @@ solana_security_txt::security_txt! {
     auditors: "Halborn"
 }
 
-declare_id!("Bmr31xzZYYVUdoHmAJL1DAp2anaitW8Tw9YfASS94MKJ");
+declare_id!("CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia");
 
 #[program]
 pub mod perpetuals {
     use super::*;
 
     // admin instructions
-    pub fn init(ctx: Context<Init>, params: InitParams) -> Result<()> {
+    pub fn init<'info>(
+        ctx: Context<'_, '_, '_, 'info, Init<'info>>,
+        params: InitParams,
+    ) -> Result<()> {
         instructions::init(ctx, &params)
+    }
+
+    pub fn add_vest<'info>(
+        ctx: Context<'_, '_, '_, 'info, AddVest<'info>>,
+        params: AddVestParams,
+    ) -> Result<u8> {
+        instructions::add_vest(ctx, &params)
+    }
+
+    pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> Result<u64> {
+        instructions::claim_vest(ctx)
     }
 
     pub fn add_pool<'info>(
@@ -133,6 +148,13 @@ pub mod perpetuals {
 
     pub fn add_liquidity(ctx: Context<AddLiquidity>, params: AddLiquidityParams) -> Result<()> {
         instructions::add_liquidity(ctx, &params)
+    }
+
+    pub fn add_genesis_liquidity(
+        ctx: Context<AddGenesisLiquidity>,
+        params: AddGenesisLiquidityParams,
+    ) -> Result<()> {
+        instructions::add_genesis_liquidity(ctx, &params)
     }
 
     pub fn remove_liquidity(
@@ -236,10 +258,74 @@ pub mod perpetuals {
         instructions::get_assets_under_management(ctx, &params)
     }
 
+    pub fn init_user_staking(
+        ctx: Context<InitUserStaking>,
+        params: InitUserStakingParams,
+    ) -> Result<()> {
+        instructions::init_user_staking(ctx, &params)
+    }
+
+    pub fn init_staking<'info>(
+        ctx: Context<'_, '_, '_, 'info, InitStaking<'info>>,
+        params: InitStakingParams,
+    ) -> Result<u8> {
+        instructions::init_staking(ctx, &params)
+    }
+
+    pub fn add_liquid_stake(
+        ctx: Context<AddLiquidStake>,
+        params: AddLiquidStakeParams,
+    ) -> Result<()> {
+        instructions::add_liquid_stake(ctx, &params)
+    }
+
+    pub fn add_locked_stake(
+        ctx: Context<AddLockedStake>,
+        params: AddLockedStakeParams,
+    ) -> Result<()> {
+        instructions::add_locked_stake(ctx, &params)
+    }
+
+    pub fn remove_liquid_stake(
+        ctx: Context<RemoveLiquidStake>,
+        params: RemoveLiquidStakeParams,
+    ) -> Result<()> {
+        instructions::remove_liquid_stake(ctx, &params)
+    }
+
+    pub fn remove_locked_stake(
+        ctx: Context<RemoveLockedStake>,
+        params: RemoveLockedStakeParams,
+    ) -> Result<()> {
+        instructions::remove_locked_stake(ctx, &params)
+    }
+
+    pub fn claim_stakes(ctx: Context<ClaimStakes>) -> Result<()> {
+        instructions::claim_stakes(ctx)
+    }
+
+    pub fn finalize_locked_stake(
+        ctx: Context<FinalizeLockedStake>,
+        params: FinalizeLockedStakeParams,
+    ) -> Result<()> {
+        instructions::finalize_locked_stake(ctx, &params)
+    }
+
+    pub fn resolve_staking_round(ctx: Context<ResolveStakingRound>) -> Result<()> {
+        instructions::resolve_staking_round(ctx)
+    }
+
     pub fn get_lp_token_price(
         ctx: Context<GetLpTokenPrice>,
         params: GetLpTokenPriceParams,
     ) -> Result<u64> {
         instructions::get_lp_token_price(ctx, &params)
+    }
+
+    pub fn mint_lm_tokens_from_bucket<'info>(
+        ctx: Context<'_, '_, '_, 'info, MintLmTokensFromBucket<'info>>,
+        params: MintLmTokensFromBucketParams,
+    ) -> Result<u8> {
+        instructions::mint_lm_tokens_from_bucket(ctx, &params)
     }
 }

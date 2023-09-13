@@ -11,7 +11,7 @@ use {
     tokio::sync::RwLock,
 };
 
-pub async fn test_liquidate(
+pub async fn liquidate(
     program_test_ctx: &RwLock<ProgramTestContext>,
     liquidator: &Keypair,
     payer: &Keypair,

@@ -1,11 +1,15 @@
 use {
-    crate::{instructions, utils},
+    crate::{
+        test_instructions,
+        utils::{self, pda},
+    },
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            ClosePositionParams, OpenPositionParams, RemoveLiquidityParams, SwapParams,
+            AddLiquidStakeParams, AddVestParams, ClosePositionParams, OpenPositionParams,
+            RemoveLiquidStakeParams, RemoveLiquidityParams, SwapParams,
         },
-        state::position::Side,
+        state::{cortex::Cortex, position::Side, staking::StakingRound},
     },
     solana_sdk::signer::Signer,
 };
@@ -48,6 +52,10 @@ pub async fn basic_interactions() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -87,6 +95,10 @@ pub async fn basic_interactions() {
                 payer_user_name: "martin",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -94,13 +106,21 @@ pub async fn basic_interactions() {
     let martin = test_setup.get_user_keypair_by_name("martin");
     let paul = test_setup.get_user_keypair_by_name("paul");
 
+    let admin_a = test_setup.get_multisig_member_keypair_by_name("admin_a");
+
+    let cortex_stake_reward_mint = test_setup.get_cortex_stake_reward_mint();
+    let multisig_signers = test_setup.get_multisig_signers();
+
     let usdc_mint = &test_setup.get_mint_by_name("usdc");
     let eth_mint = &test_setup.get_mint_by_name("eth");
+
+    let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
+    utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
     // Simple open/close position
     {
         // Martin: Open 0.1 ETH position
-        let position_pda = instructions::test_open_position(
+        let position_pda = test_instructions::open_position(
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
@@ -119,7 +139,7 @@ pub async fn basic_interactions() {
         .0;
 
         // Martin: Close the ETH position
-        instructions::test_close_position(
+        test_instructions::close_position(
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
@@ -148,7 +168,7 @@ pub async fn basic_interactions() {
             let usdc_balance_before =
                 utils::get_token_account_balance(&test_setup.program_test_ctx, paul_usdc_ata).await;
 
-            instructions::test_swap(
+            test_instructions::swap(
                 &test_setup.program_test_ctx,
                 paul,
                 &test_setup.payer_keypair,
@@ -170,7 +190,7 @@ pub async fn basic_interactions() {
             let usdc_balance_after =
                 utils::get_token_account_balance(&test_setup.program_test_ctx, paul_usdc_ata).await;
 
-            assert_eq!(eth_balance_after - eth_balance_before, 96_262_804);
+            assert_eq!(eth_balance_after - eth_balance_before, 96_272_504);
             assert_eq!(usdc_balance_before - usdc_balance_after, 150_000_000);
         }
 
@@ -182,7 +202,7 @@ pub async fn basic_interactions() {
             let usdc_balance_before =
                 utils::get_token_account_balance(&test_setup.program_test_ctx, paul_usdc_ata).await;
 
-            instructions::test_swap(
+            test_instructions::swap(
                 &test_setup.program_test_ctx,
                 paul,
                 &test_setup.payer_keypair,
@@ -205,7 +225,7 @@ pub async fn basic_interactions() {
                 utils::get_token_account_balance(&test_setup.program_test_ctx, paul_usdc_ata).await;
 
             assert_eq!(eth_balance_before - eth_balance_after, 100_000_000);
-            assert_eq!(usdc_balance_after - usdc_balance_before, 143_608_500);
+            assert_eq!(usdc_balance_after - usdc_balance_before, 143_579_400);
         }
     }
 
@@ -218,7 +238,7 @@ pub async fn basic_interactions() {
             utils::get_token_account_balance(&test_setup.program_test_ctx, alice_lp_token).await;
 
         // Alice: Remove 100% of provided liquidity (1k USDC less fees)
-        instructions::test_remove_liquidity(
+        test_instructions::remove_liquidity(
             &test_setup.program_test_ctx,
             alice,
             &test_setup.payer_keypair,
@@ -228,6 +248,115 @@ pub async fn basic_interactions() {
                 lp_amount_in: alice_lp_token_balance,
                 min_amount_out: 1,
             },
+        )
+        .await
+        .unwrap();
+    }
+
+    // Simple vest and claim
+    {
+        let current_time = utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await;
+
+        // Alice: vest 2 token, unlock period from now to in 7 days
+        test_instructions::add_vest(
+            &test_setup.program_test_ctx,
+            admin_a,
+            &test_setup.payer_keypair,
+            alice,
+            &test_setup.governance_realm_pda,
+            &AddVestParams {
+                amount: utils::scale(2, Cortex::LM_DECIMALS),
+                unlock_start_timestamp: current_time,
+                unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
+            },
+            &multisig_signers,
+        )
+        .await
+        .unwrap();
+
+        // warp to have tokens to claim
+        utils::warp_forward(&test_setup.program_test_ctx, utils::days_in_seconds(7)).await;
+
+        // Alice: claim vest
+        test_instructions::claim_vest(
+            &test_setup.program_test_ctx,
+            &test_setup.payer_keypair,
+            alice,
+            &test_setup.governance_realm_pda,
+        )
+        .await
+        .unwrap();
+    }
+
+    // UserStaking
+    {
+        let stakes_claim_cron_thread_id =
+            utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await as u64;
+
+        test_instructions::init_user_staking(
+            &test_setup.program_test_ctx,
+            alice,
+            &test_setup.payer_keypair,
+            &lm_token_mint_pda,
+            perpetuals::instructions::InitUserStakingParams {
+                stakes_claim_cron_thread_id,
+            },
+        )
+        .await
+        .unwrap();
+
+        // Alice: add liquid stake
+        test_instructions::add_liquid_stake(
+            &test_setup.program_test_ctx,
+            alice,
+            &test_setup.payer_keypair,
+            AddLiquidStakeParams {
+                amount: utils::scale(1, Cortex::LM_DECIMALS),
+            },
+            &test_setup.governance_realm_pda,
+            &lm_token_mint_pda,
+        )
+        .await
+        .unwrap();
+
+        // Alice: claim stake (nothing to be claimed yet)
+        test_instructions::claim_stakes(
+            &test_setup.program_test_ctx,
+            alice,
+            alice,
+            &test_setup.payer_keypair,
+            &lm_token_mint_pda,
+        )
+        .await
+        .unwrap();
+
+        // Alice: remove liquid staking
+        test_instructions::remove_liquid_stake(
+            &test_setup.program_test_ctx,
+            alice,
+            &test_setup.payer_keypair,
+            RemoveLiquidStakeParams {
+                amount: utils::scale(1, Cortex::LM_DECIMALS),
+            },
+            &cortex_stake_reward_mint,
+            &test_setup.governance_realm_pda,
+        )
+        .await
+        .unwrap();
+
+        // warps to the next round
+        utils::warp_forward(
+            &test_setup.program_test_ctx,
+            StakingRound::ROUND_MIN_DURATION_SECONDS,
+        )
+        .await;
+
+        test_instructions::resolve_staking_round(
+            &test_setup.program_test_ctx,
+            alice,
+            alice,
+            &test_setup.payer_keypair,
+            &lm_token_mint_pda,
         )
         .await
         .unwrap();

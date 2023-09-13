@@ -1,27 +1,30 @@
 use {
-    crate::{instructions, utils},
+    crate::{test_instructions, utils},
     maplit::hashmap,
-    perpetuals::instructions::SwapParams,
+    perpetuals::{instructions::SwapParams, state::cortex::Cortex},
 };
 
 const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
 
-pub async fn insuffisient_fund() {
+// this test is about filling the maximum number of staking rounds the systme can hold (StakingRound::MAX_RESOLVED_ROUNDS)
+// and playing around that limit for different edge cases
+
+pub async fn test_staking_rewards_from_swap() {
     let test_setup = utils::TestSetup::new(
         vec![
             utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
-                    "usdc" => utils::scale(7_500, USDC_DECIMALS),
-                    "eth" => utils::scale(5, ETH_DECIMALS),
+                    "usdc" => utils::scale(1_000, USDC_DECIMALS),
+                    "eth" => utils::scale(2, ETH_DECIMALS),
                 },
             },
             utils::UserParam {
                 name: "martin",
                 token_balances: hashmap! {
                     "usdc" => utils::scale(1_000, USDC_DECIMALS),
-                    "eth" => utils::scale(10, ETH_DECIMALS),
+                    "eth" => utils::scale(2, ETH_DECIMALS),
                 },
             },
         ],
@@ -36,6 +39,10 @@ pub async fn insuffisient_fund() {
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
+        "usdc",
+        "usdc",
+        6,
+        "ADRENA",
         "main_pool",
         vec![
             utils::SetupCustodyWithLiquidityParams {
@@ -53,7 +60,7 @@ pub async fn insuffisient_fund() {
                     fees: None,
                     borrow_rate: None,
                 },
-                liquidity_amount: utils::scale(7_500, USDC_DECIMALS),
+                liquidity_amount: utils::scale(1_000, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
             utils::SetupCustodyWithLiquidityParams {
@@ -71,10 +78,14 @@ pub async fn insuffisient_fund() {
                     fees: None,
                     borrow_rate: None,
                 },
-                liquidity_amount: utils::scale(5, ETH_DECIMALS),
-                payer_user_name: "alice",
+                liquidity_amount: utils::scale(1, ETH_DECIMALS),
+                payer_user_name: "martin",
             },
         ],
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(1_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -86,7 +97,7 @@ pub async fn insuffisient_fund() {
     // Swap with not enough collateral should fail
     {
         // Martin: Swap 5k USDC for ETH
-        assert!(instructions::test_swap(
+        assert!(test_instructions::swap(
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
@@ -106,7 +117,7 @@ pub async fn insuffisient_fund() {
     // Swap for more token that the pool own should fail
     {
         // Martin: Swap 10 ETH for (15k) USDC
-        assert!(instructions::test_swap(
+        assert!(test_instructions::swap(
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
