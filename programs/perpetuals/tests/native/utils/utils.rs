@@ -180,217 +180,187 @@ pub async fn mint_tokens(
         .unwrap();
 }
 
-// Doesn't check if you go before epoch 0 when passing negative amounts, be wary
-pub async fn warp_forward(ctx: &RwLock<ProgramTestContext>, seconds: i64) {
-    let mut ctx = ctx.write().await;
+// pub async fn add_clockwork_network_program(
+//     program_test: &mut ProgramTest,
+//     upgrade_authority: &Keypair,
+// ) {
+//     let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
+//         "tests/native/external_programs_binaries/clockwork_network_program_2_0_17.so",
+//     )));
 
-    let clock_sysvar: Clock = ctx.banks_client.get_sysvar().await.unwrap();
-    println!(
-        "Original Time: epoch = {}, timestamp = {}",
-        clock_sysvar.epoch, clock_sysvar.unix_timestamp
-    );
-    let mut new_clock = clock_sysvar.clone();
-    new_clock.unix_timestamp += seconds;
+//     let program_data_pda = Pubkey::find_program_address(
+//         &[clockwork_network_program::ID.as_ref()],
+//         &solana_program::bpf_loader_upgradeable::id(),
+//     )
+//     .0;
 
-    let seconds_since_epoch_start = new_clock.unix_timestamp - clock_sysvar.epoch_start_timestamp;
-    let ms_since_epoch_start = seconds_since_epoch_start * 1_000;
-    let slots_since_epoch_start = ms_since_epoch_start / SLOT_MS as i64;
-    let epochs_since_epoch_start = slots_since_epoch_start / DEFAULT_SLOTS_PER_EPOCH as i64;
-    new_clock.epoch = (new_clock.epoch as i64 + epochs_since_epoch_start) as u64;
+//     let program = UpgradeableLoaderState::Program {
+//         programdata_address: program_data_pda,
+//     };
+//     let program_data = UpgradeableLoaderState::ProgramData {
+//         slot: 1,
+//         upgrade_authority_address: Some(upgrade_authority.pubkey()),
+//     };
 
-    ctx.set_sysvar(&new_clock);
-    let clock_sysvar: Clock = ctx.banks_client.get_sysvar().await.unwrap();
-    println!(
-        "New Time: epoch = {}, timestamp = {}",
-        clock_sysvar.epoch, clock_sysvar.unix_timestamp
-    );
+//     let serialized_program = bincode::serialize(&program).unwrap();
 
-    let blockhash = ctx.banks_client.get_latest_blockhash().await.unwrap();
+//     let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
+//     serialized_program_data.append(&mut program_bytes);
 
-    ctx.last_blockhash = blockhash;
-}
+//     let program_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program.len()),
+//         data: serialized_program,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: true,
+//         rent_epoch: Epoch::default(),
+//     };
+//     let program_data_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program_data.len()),
+//         data: serialized_program_data,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: false,
+//         rent_epoch: Epoch::default(),
+//     };
 
-pub async fn add_clockwork_network_program(
-    program_test: &mut ProgramTest,
-    upgrade_authority: &Keypair,
-) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/clockwork_network_program_2_0_17.so",
-    )));
+//     program_test.add_account(clockwork_network_program::ID, program_account);
+//     program_test.add_account(program_data_pda, program_data_account);
+// }
 
-    let program_data_pda = Pubkey::find_program_address(
-        &[clockwork_network_program::ID.as_ref()],
-        &solana_program::bpf_loader_upgradeable::id(),
-    )
-    .0;
+// pub async fn add_clockwork_thread_program(
+//     program_test: &mut ProgramTest,
+//     upgrade_authority: &Keypair,
+// ) {
+//     let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
+//         "tests/native/external_programs_binaries/clockwork_thread_program_2_0_17.so",
+//     )));
 
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
+//     let program_data_pda = Pubkey::find_program_address(
+//         &[clockwork_sdk::ID.as_ref()],
+//         &solana_program::bpf_loader_upgradeable::id(),
+//     )
+//     .0;
 
-    let serialized_program = bincode::serialize(&program).unwrap();
+//     let program = UpgradeableLoaderState::Program {
+//         programdata_address: program_data_pda,
+//     };
+//     let program_data = UpgradeableLoaderState::ProgramData {
+//         slot: 1,
+//         upgrade_authority_address: Some(upgrade_authority.pubkey()),
+//     };
 
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
+//     let serialized_program = bincode::serialize(&program).unwrap();
 
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
+//     let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
+//     serialized_program_data.append(&mut program_bytes);
 
-    program_test.add_account(clockwork_network_program::ID, program_account);
-    program_test.add_account(program_data_pda, program_data_account);
-}
+//     let program_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program.len()),
+//         data: serialized_program,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: true,
+//         rent_epoch: Epoch::default(),
+//     };
+//     let program_data_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program_data.len()),
+//         data: serialized_program_data,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: false,
+//         rent_epoch: Epoch::default(),
+//     };
 
-pub async fn add_clockwork_thread_program(
-    program_test: &mut ProgramTest,
-    upgrade_authority: &Keypair,
-) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/clockwork_thread_program_2_0_17.so",
-    )));
+//     program_test.add_account(clockwork_sdk::ID, program_account);
+//     program_test.add_account(program_data_pda, program_data_account);
+// }
 
-    let program_data_pda = Pubkey::find_program_address(
-        &[clockwork_sdk::ID.as_ref()],
-        &solana_program::bpf_loader_upgradeable::id(),
-    )
-    .0;
+// pub async fn add_spl_governance_program(
+//     program_test: &mut ProgramTest,
+//     upgrade_authority: &Keypair,
+// ) {
+//     let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
+//         "tests/native/external_programs_binaries/spl_governance_3_1_0.so",
+//     )));
 
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
+//     let program_data_pda = Pubkey::find_program_address(
+//         &[SplGovernanceV3Adapter::id().as_ref()],
+//         &solana_program::bpf_loader_upgradeable::id(),
+//     )
+//     .0;
 
-    let serialized_program = bincode::serialize(&program).unwrap();
+//     let program = UpgradeableLoaderState::Program {
+//         programdata_address: program_data_pda,
+//     };
+//     let program_data = UpgradeableLoaderState::ProgramData {
+//         slot: 1,
+//         upgrade_authority_address: Some(upgrade_authority.pubkey()),
+//     };
 
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
+//     let serialized_program = bincode::serialize(&program).unwrap();
 
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
+//     let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
+//     serialized_program_data.append(&mut program_bytes);
 
-    program_test.add_account(clockwork_sdk::ID, program_account);
-    program_test.add_account(program_data_pda, program_data_account);
-}
+//     let program_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program.len()),
+//         data: serialized_program,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: true,
+//         rent_epoch: Epoch::default(),
+//     };
+//     let program_data_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program_data.len()),
+//         data: serialized_program_data,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: false,
+//         rent_epoch: Epoch::default(),
+//     };
 
-pub async fn add_spl_governance_program(
-    program_test: &mut ProgramTest,
-    upgrade_authority: &Keypair,
-) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/spl_governance_3_1_0.so",
-    )));
+//     program_test.add_account(SplGovernanceV3Adapter::id(), program_account);
+//     program_test.add_account(program_data_pda, program_data_account);
+// }
 
-    let program_data_pda = Pubkey::find_program_address(
-        &[SplGovernanceV3Adapter::id().as_ref()],
-        &solana_program::bpf_loader_upgradeable::id(),
-    )
-    .0;
+// // Deploy the perpetuals program onchain as upgradeable program
+// pub async fn add_perpetuals_program(program_test: &mut ProgramTest, upgrade_authority: &Keypair) {
+//     // Deploy two accounts, one describing the program
+//     // and a second one holding the program's binary bytes
+//     let mut program_bytes = read_file(
+//         std::env::current_dir()
+//             .unwrap()
+//             .join(Path::new("../../target/deploy/perpetuals.so")),
+//     );
 
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
+//     let program_data_pda = get_program_data_pda().0;
 
-    let serialized_program = bincode::serialize(&program).unwrap();
+//     let program = UpgradeableLoaderState::Program {
+//         programdata_address: program_data_pda,
+//     };
+//     let program_data = UpgradeableLoaderState::ProgramData {
+//         slot: 1,
+//         upgrade_authority_address: Some(upgrade_authority.pubkey()),
+//     };
 
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
+//     let serialized_program = bincode::serialize(&program).unwrap();
 
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
+//     let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
+//     serialized_program_data.append(&mut program_bytes);
 
-    program_test.add_account(SplGovernanceV3Adapter::id(), program_account);
-    program_test.add_account(program_data_pda, program_data_account);
-}
+//     let program_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program.len()),
+//         data: serialized_program,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: true,
+//         rent_epoch: Epoch::default(),
+//     };
+//     let program_data_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program_data.len()),
+//         data: serialized_program_data,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: false,
+//         rent_epoch: Epoch::default(),
+//     };
 
-// Deploy the perpetuals program onchain as upgradeable program
-pub async fn add_perpetuals_program(program_test: &mut ProgramTest, upgrade_authority: &Keypair) {
-    // Deploy two accounts, one describing the program
-    // and a second one holding the program's binary bytes
-    let mut program_bytes = read_file(
-        std::env::current_dir()
-            .unwrap()
-            .join(Path::new("../../target/deploy/perpetuals.so")),
-    );
-
-    let program_data_pda = get_program_data_pda().0;
-
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
-
-    let serialized_program = bincode::serialize(&program).unwrap();
-
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
-
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
-
-    program_test.add_account(perpetuals::id(), program_account);
-    program_test.add_account(program_data_pda, program_data_account);
-}
+//     program_test.add_account(perpetuals::id(), program_account);
+//     program_test.add_account(program_data_pda, program_data_account);
+// }
 
 pub async fn create_and_fund_multiple_accounts(
     program_test: &mut ProgramTest,
@@ -610,4 +580,34 @@ pub async fn initialize_users_token_accounts(
             .await
             .unwrap();
     }
+}
+
+// Doesn't check if you go before epoch 0 when passing negative amounts, be wary
+pub async fn warp_forward(ctx: &RwLock<ProgramTestContext>, seconds: i64) {
+    let mut ctx = ctx.write().await;
+
+    let clock_sysvar: Clock = ctx.banks_client.get_sysvar().await.unwrap();
+    println!(
+        "Original Time: epoch = {}, timestamp = {}",
+        clock_sysvar.epoch, clock_sysvar.unix_timestamp
+    );
+    let mut new_clock = clock_sysvar.clone();
+    new_clock.unix_timestamp += seconds;
+
+    let seconds_since_epoch_start = new_clock.unix_timestamp - clock_sysvar.epoch_start_timestamp;
+    let ms_since_epoch_start = seconds_since_epoch_start * 1_000;
+    let slots_since_epoch_start = ms_since_epoch_start / DEFAULT_MS_PER_SLOT as i64;
+    let epochs_since_epoch_start = slots_since_epoch_start / DEFAULT_SLOTS_PER_EPOCH as i64;
+    new_clock.epoch = (new_clock.epoch as i64 + epochs_since_epoch_start) as u64;
+
+    ctx.set_sysvar(&new_clock);
+    let clock_sysvar: Clock = ctx.banks_client.get_sysvar().await.unwrap();
+    println!(
+        "New Time: epoch = {}, timestamp = {}",
+        clock_sysvar.epoch, clock_sysvar.unix_timestamp
+    );
+
+    let blockhash = ctx.banks_client.get_latest_blockhash().await.unwrap();
+
+    ctx.last_blockhash = blockhash;
 }

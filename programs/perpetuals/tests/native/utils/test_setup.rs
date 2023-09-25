@@ -140,7 +140,7 @@ impl TestSetup {
         pol_bucket_allocation: u64,
         ecosystem_bucket_allocation: u64,
     ) -> TestSetup {
-        let mut program_test = ProgramTest::default();
+        let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
 
         // Initialize keypairs
         let keypairs: Vec<Keypair> = utils::create_and_fund_multiple_accounts(

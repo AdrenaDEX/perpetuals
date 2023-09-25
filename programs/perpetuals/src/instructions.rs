@@ -15,7 +15,6 @@ pub mod withdraw_sol_fees;
 
 // test instructions
 pub mod set_test_time;
-pub mod test_init;
 
 // public instructions
 pub mod add_collateral;

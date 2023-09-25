@@ -114,15 +114,11 @@ pub struct Init<'info> {
     )]
     pub perpetuals: Box<Account<'info, Perpetuals>>,
 
-    #[account(
-        constraint = perpetuals_program.programdata_address()? == Some(perpetuals_program_data.key())
-    )]
-    pub perpetuals_program: Program<'info, Perpetuals>,
+    /// CHECK: ProgramData account, doesn't work in tests
+    #[account()]
+    pub perpetuals_program_data: AccountInfo<'info /*, ProgramData*/>,
 
-    #[account(
-        constraint = perpetuals_program_data.upgrade_authority_address == Some(upgrade_authority.key())
-    )]
-    pub perpetuals_program_data: Account<'info, ProgramData>,
+    pub perpetuals_program: Program<'info, crate::program::Perpetuals>,
 
     /// CHECK: checked by spl governance v3 program
     /// A realm represent one project (ADRENA, MANGO etc.) within the governance program
@@ -153,10 +149,12 @@ pub struct InitParams {
     pub ecosystem_bucket_allocation: u64,
 }
 
-pub fn init<'info>(
-    ctx: Context<'_, '_, '_, 'info, Init<'info>>,
-    params: &InitParams,
-) -> Result<()> {
+pub fn init(ctx: Context<Init>, params: &InitParams) -> Result<()> {
+    Perpetuals::validate_upgrade_authority(
+        ctx.accounts.upgrade_authority.key(),
+        &ctx.accounts.perpetuals_program_data.to_account_info(),
+        &ctx.accounts.perpetuals_program,
+    )?;
     // initialize multisig, this will fail if account is already initialized
     {
         let mut multisig = ctx.accounts.multisig.load_init()?;
