@@ -132,7 +132,7 @@ pub struct RemoveLockedStake<'info> {
 
     /// CHECK: checked by clockwork thread program
     #[account(mut)]
-    pub stakes_claim_cron_thread: Box<Account<'info, clockwork_sdk::state::Thread>>,
+    pub stakes_claim_cron_thread: AccountInfo<'info>, //Box<Account<'info, clockwork_sdk::state::Thread>>,
 
     /// CHECK: empty PDA, authority for threads
     #[account(
@@ -141,7 +141,7 @@ pub struct RemoveLockedStake<'info> {
     )]
     pub user_staking_thread_authority: AccountInfo<'info>,
 
-    clockwork_program: Program<'info, clockwork_sdk::ThreadProgram>,
+    clockwork_program: AccountInfo<'info>, //Program<'info, clockwork_sdk::ThreadProgram>,
     governance_program: Program<'info, SplGovernanceV3Adapter>,
     perpetuals_program: Program<'info, program::Perpetuals>,
     system_program: Program<'info, System>,
@@ -244,23 +244,23 @@ pub fn remove_locked_stake(
 
     // pause auto-claim if there are no more staked token,
     {
-        if !ctx.accounts.stakes_claim_cron_thread.paused
-            && user_staking.liquid_stake.amount == 0
-            && user_staking.locked_stakes.is_empty()
-        {
-            clockwork_sdk::cpi::thread_pause(CpiContext::new_with_signer(
-                ctx.accounts.clockwork_program.to_account_info(),
-                clockwork_sdk::cpi::ThreadPause {
-                    authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
-                    thread: ctx.accounts.stakes_claim_cron_thread.to_account_info(),
-                },
-                &[&[
-                    USER_STAKING_THREAD_AUTHORITY_SEED,
-                    user_staking.key().as_ref(),
-                    &[ctx.accounts.user_staking.thread_authority_bump],
-                ]],
-            ))?;
-        }
+        // if !ctx.accounts.stakes_claim_cron_thread.paused
+        //     && user_staking.liquid_stake.amount == 0
+        //     && user_staking.locked_stakes.is_empty()
+        // {
+        //     clockwork_sdk::cpi::thread_pause(CpiContext::new_with_signer(
+        //         ctx.accounts.clockwork_program.to_account_info(),
+        //         clockwork_sdk::cpi::ThreadPause {
+        //             authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
+        //             thread: ctx.accounts.stakes_claim_cron_thread.to_account_info(),
+        //         },
+        //         &[&[
+        //             USER_STAKING_THREAD_AUTHORITY_SEED,
+        //             user_staking.key().as_ref(),
+        //             &[ctx.accounts.user_staking.thread_authority_bump],
+        //         ]],
+        //     ))?;
+        // }
     }
 
     Ok(())

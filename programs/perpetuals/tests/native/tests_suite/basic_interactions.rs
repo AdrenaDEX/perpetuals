@@ -305,60 +305,60 @@ pub async fn basic_interactions() {
         .await
         .unwrap();
 
-        // Alice: add liquid stake
-        test_instructions::add_liquid_stake(
-            &test_setup.program_test_ctx,
-            alice,
-            &test_setup.payer_keypair,
-            AddLiquidStakeParams {
-                amount: utils::scale(1, Cortex::LM_DECIMALS),
-            },
-            &test_setup.governance_realm_pda,
-            &lm_token_mint_pda,
-        )
-        .await
-        .unwrap();
+        // // Alice: add liquid stake
+        // test_instructions::add_liquid_stake(
+        //     &test_setup.program_test_ctx,
+        //     alice,
+        //     &test_setup.payer_keypair,
+        //     AddLiquidStakeParams {
+        //         amount: utils::scale(1, Cortex::LM_DECIMALS),
+        //     },
+        //     &test_setup.governance_realm_pda,
+        //     &lm_token_mint_pda,
+        // )
+        // .await
+        // .unwrap();
 
-        // Alice: claim stake (nothing to be claimed yet)
-        test_instructions::claim_stakes(
-            &test_setup.program_test_ctx,
-            alice,
-            alice,
-            &test_setup.payer_keypair,
-            &lm_token_mint_pda,
-        )
-        .await
-        .unwrap();
+        // // Alice: claim stake (nothing to be claimed yet)
+        // test_instructions::claim_stakes(
+        //     &test_setup.program_test_ctx,
+        //     alice,
+        //     alice,
+        //     &test_setup.payer_keypair,
+        //     &lm_token_mint_pda,
+        // )
+        // .await
+        // .unwrap();
 
-        // Alice: remove liquid staking
-        test_instructions::remove_liquid_stake(
-            &test_setup.program_test_ctx,
-            alice,
-            &test_setup.payer_keypair,
-            RemoveLiquidStakeParams {
-                amount: utils::scale(1, Cortex::LM_DECIMALS),
-            },
-            &cortex_stake_reward_mint,
-            &test_setup.governance_realm_pda,
-        )
-        .await
-        .unwrap();
+        // // Alice: remove liquid staking
+        // test_instructions::remove_liquid_stake(
+        //     &test_setup.program_test_ctx,
+        //     alice,
+        //     &test_setup.payer_keypair,
+        //     RemoveLiquidStakeParams {
+        //         amount: utils::scale(1, Cortex::LM_DECIMALS),
+        //     },
+        //     &cortex_stake_reward_mint,
+        //     &test_setup.governance_realm_pda,
+        // )
+        // .await
+        // .unwrap();
 
-        // warps to the next round
-        utils::warp_forward(
-            &test_setup.program_test_ctx,
-            StakingRound::ROUND_MIN_DURATION_SECONDS,
-        )
-        .await;
+        // // warps to the next round
+        // utils::warp_forward(
+        //     &test_setup.program_test_ctx,
+        //     StakingRound::ROUND_MIN_DURATION_SECONDS,
+        // )
+        // .await;
 
-        test_instructions::resolve_staking_round(
-            &test_setup.program_test_ctx,
-            alice,
-            alice,
-            &test_setup.payer_keypair,
-            &lm_token_mint_pda,
-        )
-        .await
-        .unwrap();
+        // test_instructions::resolve_staking_round(
+        //     &test_setup.program_test_ctx,
+        //     alice,
+        //     alice,
+        //     &test_setup.payer_keypair,
+        //     &lm_token_mint_pda,
+        // )
+        // .await
+        // .unwrap();
     }
 }

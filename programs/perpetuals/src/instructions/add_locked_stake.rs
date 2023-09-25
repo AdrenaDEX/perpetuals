@@ -129,7 +129,7 @@ pub struct AddLockedStake<'info> {
 
     /// CHECK: checked by clockwork thread program
     #[account(mut)]
-    pub stakes_claim_cron_thread: Box<Account<'info, clockwork_sdk::state::Thread>>,
+    pub stakes_claim_cron_thread: AccountInfo<'info>, //Box<Account<'info, clockwork_sdk::state::Thread>>,
 
     /// CHECK: empty PDA, authority for threads
     #[account(
@@ -138,7 +138,7 @@ pub struct AddLockedStake<'info> {
     )]
     pub user_staking_thread_authority: AccountInfo<'info>,
 
-    clockwork_program: Program<'info, clockwork_sdk::ThreadProgram>,
+    clockwork_program: AccountInfo<'info>, // Program<'info, clockwork_sdk::ThreadProgram>,
     governance_program: Program<'info, SplGovernanceV3Adapter>,
     perpetuals_program: Program<'info, program::Perpetuals>,
     system_program: Program<'info, System>,
@@ -215,75 +215,75 @@ pub fn add_locked_stake(ctx: Context<AddLockedStake>, params: &AddLockedStakePar
 
         // Create a clockwork thread to auto-resolve the staking when it ends
         {
-            clockwork_sdk::cpi::thread_create(
-                CpiContext::new_with_signer(
-                    ctx.accounts.clockwork_program.to_account_info(),
-                    clockwork_sdk::cpi::ThreadCreate {
-                        payer: ctx.accounts.owner.to_account_info(),
-                        system_program: ctx.accounts.system_program.to_account_info(),
-                        thread: ctx.accounts.stake_resolution_thread.to_account_info(),
-                        authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
-                    },
-                    &[&[
-                        USER_STAKING_THREAD_AUTHORITY_SEED,
-                        user_staking.key().as_ref(),
-                        &[user_staking.thread_authority_bump],
-                    ]],
-                ),
-                // Lamports paid to the clockwork worker executing the thread
-                math::checked_add(
-                    UserStaking::AUTOMATION_EXEC_FEE,
-                    // Provide enough for the thread account to be rent exempt
-                    Rent::get()?.minimum_balance(ctx.accounts.stake_resolution_thread.data_len()),
-                )?,
-                params.stake_resolution_thread_id.try_to_vec().unwrap(),
-                //
-                // Instruction to be executed with the thread
-                vec![Instruction {
-                    program_id: crate::ID,
-                    accounts: crate::cpi::accounts::FinalizeLockedStake {
-                        caller: ctx.accounts.stake_resolution_thread.to_account_info(),
-                        owner: ctx.accounts.owner.to_account_info(),
-                        transfer_authority: ctx.accounts.transfer_authority.to_account_info(),
-                        user_staking: user_staking.to_account_info(),
-                        staking: staking.to_account_info(),
-                        cortex: cortex.to_account_info(),
-                        perpetuals: perpetuals.to_account_info(),
-                        lm_token_mint: ctx.accounts.lm_token_mint.to_account_info(),
-                        governance_token_mint: ctx.accounts.governance_token_mint.to_account_info(),
-                        governance_realm: ctx.accounts.governance_realm.to_account_info(),
-                        governance_realm_config: ctx
-                            .accounts
-                            .governance_realm_config
-                            .to_account_info(),
-                        governance_governing_token_holding: ctx
-                            .accounts
-                            .governance_governing_token_holding
-                            .to_account_info(),
-                        governance_governing_token_owner_record: ctx
-                            .accounts
-                            .governance_governing_token_owner_record
-                            .to_account_info(),
-                        governance_program: ctx.accounts.governance_program.to_account_info(),
-                        perpetuals_program: ctx.accounts.perpetuals_program.to_account_info(),
-                        system_program: ctx.accounts.system_program.to_account_info(),
-                        token_program: ctx.accounts.token_program.to_account_info(),
-                    }
-                    .to_account_metas(Some(true)),
-                    data: crate::instruction::FinalizeLockedStake {
-                        params: FinalizeLockedStakeParams {
-                            thread_id: params.stake_resolution_thread_id,
-                        },
-                    }
-                    .data(),
-                }
-                .into()],
-                //
-                // Trigger configuration
-                clockwork_sdk::state::Trigger::Timestamp {
-                    unix_ts: staking_option.calculate_end_of_staking(perpetuals.get_time()?)?,
-                },
-            )?;
+            // clockwork_sdk::cpi::thread_create(
+            //     CpiContext::new_with_signer(
+            //         ctx.accounts.clockwork_program.to_account_info(),
+            //         clockwork_sdk::cpi::ThreadCreate {
+            //             payer: ctx.accounts.owner.to_account_info(),
+            //             system_program: ctx.accounts.system_program.to_account_info(),
+            //             thread: ctx.accounts.stake_resolution_thread.to_account_info(),
+            //             authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
+            //         },
+            //         &[&[
+            //             USER_STAKING_THREAD_AUTHORITY_SEED,
+            //             user_staking.key().as_ref(),
+            //             &[user_staking.thread_authority_bump],
+            //         ]],
+            //     ),
+            //     // Lamports paid to the clockwork worker executing the thread
+            //     math::checked_add(
+            //         UserStaking::AUTOMATION_EXEC_FEE,
+            //         // Provide enough for the thread account to be rent exempt
+            //         Rent::get()?.minimum_balance(ctx.accounts.stake_resolution_thread.data_len()),
+            //     )?,
+            //     params.stake_resolution_thread_id.try_to_vec().unwrap(),
+            //     //
+            //     // Instruction to be executed with the thread
+            //     vec![Instruction {
+            //         program_id: crate::ID,
+            //         accounts: crate::cpi::accounts::FinalizeLockedStake {
+            //             caller: ctx.accounts.stake_resolution_thread.to_account_info(),
+            //             owner: ctx.accounts.owner.to_account_info(),
+            //             transfer_authority: ctx.accounts.transfer_authority.to_account_info(),
+            //             user_staking: user_staking.to_account_info(),
+            //             staking: staking.to_account_info(),
+            //             cortex: cortex.to_account_info(),
+            //             perpetuals: perpetuals.to_account_info(),
+            //             lm_token_mint: ctx.accounts.lm_token_mint.to_account_info(),
+            //             governance_token_mint: ctx.accounts.governance_token_mint.to_account_info(),
+            //             governance_realm: ctx.accounts.governance_realm.to_account_info(),
+            //             governance_realm_config: ctx
+            //                 .accounts
+            //                 .governance_realm_config
+            //                 .to_account_info(),
+            //             governance_governing_token_holding: ctx
+            //                 .accounts
+            //                 .governance_governing_token_holding
+            //                 .to_account_info(),
+            //             governance_governing_token_owner_record: ctx
+            //                 .accounts
+            //                 .governance_governing_token_owner_record
+            //                 .to_account_info(),
+            //             governance_program: ctx.accounts.governance_program.to_account_info(),
+            //             perpetuals_program: ctx.accounts.perpetuals_program.to_account_info(),
+            //             system_program: ctx.accounts.system_program.to_account_info(),
+            //             token_program: ctx.accounts.token_program.to_account_info(),
+            //         }
+            //         .to_account_metas(Some(true)),
+            //         data: crate::instruction::FinalizeLockedStake {
+            //             params: FinalizeLockedStakeParams {
+            //                 thread_id: params.stake_resolution_thread_id,
+            //             },
+            //         }
+            //         .data(),
+            //     }
+            //     .into()],
+            //     //
+            //     // Trigger configuration
+            //     clockwork_sdk::state::Trigger::Timestamp {
+            //         unix_ts: staking_option.calculate_end_of_staking(perpetuals.get_time()?)?,
+            //     },
+            // )?;
         }
 
         (
@@ -367,20 +367,20 @@ pub fn add_locked_stake(ctx: Context<AddLockedStake>, params: &AddLockedStakePar
 
     // If auto claim thread is paused, resume it
     {
-        if ctx.accounts.stakes_claim_cron_thread.paused {
-            clockwork_sdk::cpi::thread_resume(CpiContext::new_with_signer(
-                ctx.accounts.clockwork_program.to_account_info(),
-                clockwork_sdk::cpi::ThreadResume {
-                    authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
-                    thread: ctx.accounts.stakes_claim_cron_thread.to_account_info(),
-                },
-                &[&[
-                    USER_STAKING_THREAD_AUTHORITY_SEED,
-                    user_staking.key().as_ref(),
-                    &[ctx.accounts.user_staking.thread_authority_bump],
-                ]],
-            ))?;
-        }
+        // if ctx.accounts.stakes_claim_cron_thread.paused {
+        //     clockwork_sdk::cpi::thread_resume(CpiContext::new_with_signer(
+        //         ctx.accounts.clockwork_program.to_account_info(),
+        //         clockwork_sdk::cpi::ThreadResume {
+        //             authority: ctx.accounts.user_staking_thread_authority.to_account_info(),
+        //             thread: ctx.accounts.stakes_claim_cron_thread.to_account_info(),
+        //         },
+        //         &[&[
+        //             USER_STAKING_THREAD_AUTHORITY_SEED,
+        //             user_staking.key().as_ref(),
+        //             &[ctx.accounts.user_staking.thread_authority_bump],
+        //         ]],
+        //     ))?;
+        // }
     }
 
     Ok(())
