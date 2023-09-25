@@ -215,7 +215,12 @@ impl TestSetup {
 
         // Deploy programs
         {
-            utils::add_perpetuals_program(&mut program_test, program_authority_keypair).await;
+            program_test.add_program(
+                "perpetuals",
+                perpetuals::id(),
+                processor!(perpetuals::entry),
+            );
+
             utils::add_spl_governance_program(&mut program_test, program_authority_keypair).await;
             utils::add_clockwork_network_program(&mut program_test, program_authority_keypair)
                 .await;
