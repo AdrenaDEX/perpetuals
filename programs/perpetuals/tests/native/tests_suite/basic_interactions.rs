@@ -117,9 +117,28 @@ pub async fn basic_interactions() {
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
     utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
-    // Simple open/close position
+    // Simple open/increase/close position
     {
         // Martin: Open 0.1 ETH position
+        let position_pda = test_instructions::open_position(
+            &test_setup.program_test_ctx,
+            martin,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
+            eth_mint,
+            OpenPositionParams {
+                // max price paid (slippage implied)
+                price: utils::scale(1_550, USDC_DECIMALS),
+                collateral: utils::scale_f64(0.1, ETH_DECIMALS),
+                size: utils::scale_f64(0.1, ETH_DECIMALS),
+                side: Side::Long,
+            },
+        )
+        .await
+        .unwrap()
+        .0;
+
+        // Martin: Increase 0.1 ETH position
         let position_pda = test_instructions::open_position(
             &test_setup.program_test_ctx,
             martin,
