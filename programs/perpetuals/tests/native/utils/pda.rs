@@ -27,65 +27,31 @@ pub fn get_lm_token_mint_pda() -> (Pubkey, u8) {
 }
 
 pub fn get_clockwork_thread_pda(thread_authority: &Pubkey, thread_id: Vec<u8>) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[
-            clockwork_thread_program::state::SEED_THREAD,
-            thread_authority.as_ref(),
-            thread_id.as_slice(),
-        ],
-        &clockwork_thread_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_config_pda() -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[clockwork_network_program::state::SEED_CONFIG],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_registry_pda() -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[clockwork_network_program::state::SEED_REGISTRY],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_snapshot_pda() -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[
-            clockwork_network_program::state::SEED_SNAPSHOT,
-            (0_u64).to_be_bytes().as_ref(),
-        ],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_fee_pda(worker: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[clockwork_network_program::state::SEED_FEE, worker.as_ref()],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_penalty_pda(worker: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[
-            clockwork_network_program::state::SEED_PENALTY,
-            worker.as_ref(),
-        ],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_clockwork_network_worker_pda(index: u64) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[
-            clockwork_network_program::state::SEED_WORKER,
-            index.to_be_bytes().as_ref(),
-        ],
-        &clockwork_network_program::id(),
-    )
+    (Pubkey::default(), 255)
 }
 
 pub fn get_governance_token_mint_pda() -> (Pubkey, u8) {
@@ -111,7 +77,7 @@ pub fn get_staking_pda(staked_token_mint: &Pubkey) -> (Pubkey, u8) {
 }
 
 pub fn get_thread_address(user_staking_thread_authority: &Pubkey, thread_id: Vec<u8>) -> Pubkey {
-    clockwork_sdk::state::Thread::pubkey(*user_staking_thread_authority, thread_id)
+    Pubkey::default()
 }
 
 pub fn get_user_staking_thread_authority(user_staking_pda: &Pubkey) -> (Pubkey, u8) {

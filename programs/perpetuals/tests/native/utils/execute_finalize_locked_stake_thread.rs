@@ -108,23 +108,23 @@ pub async fn execute_finalize_locked_stake_thread(
     .await
     .unwrap();
 
-    let thread = utils::get_account::<clockwork_thread_program::state::Thread>(
-        program_test_ctx,
-        stake_resolution_thread_pda,
-    )
-    .await;
+    // let thread = utils::get_account::<clockwork_thread_program::state::Thread>(
+    //     program_test_ctx,
+    //     stake_resolution_thread_pda,
+    // )
+    // .await;
 
-    println!(">>>>>>>>>>>>>>>>>> THREAD INFOS");
-    println!(">>>>>>>>>>>>>>>>>> created_at: {:?}", thread.created_at);
-    println!(">>>>>>>>>>>>>>>>>> exec_context: {:?}", thread.exec_context);
-    println!(">>>>>>>>>>>>>>>>>> fee: {:?}", thread.fee);
-    println!(">>>>>>>>>>>>>>>>>> id: {:?}", thread.id);
-    println!(">>>>>>>>>>>>>>>>>> instructions: {:?}", thread.instructions);
-    println!(">>>>>>>>>>>>>>>>>> name: {:?}", thread.name);
-    println!(
-        ">>>>>>>>>>>>>>>>>> next_instruction: {:?}",
-        thread.next_instruction
-    );
+    // println!(">>>>>>>>>>>>>>>>>> THREAD INFOS");
+    // println!(">>>>>>>>>>>>>>>>>> created_at: {:?}", thread.created_at);
+    // println!(">>>>>>>>>>>>>>>>>> exec_context: {:?}", thread.exec_context);
+    // println!(">>>>>>>>>>>>>>>>>> fee: {:?}", thread.fee);
+    // println!(">>>>>>>>>>>>>>>>>> id: {:?}", thread.id);
+    // println!(">>>>>>>>>>>>>>>>>> instructions: {:?}", thread.instructions);
+    // println!(">>>>>>>>>>>>>>>>>> name: {:?}", thread.name);
+    // println!(
+    //     ">>>>>>>>>>>>>>>>>> next_instruction: {:?}",
+    //     thread.next_instruction
+    // );
 
     Ok(())
 }

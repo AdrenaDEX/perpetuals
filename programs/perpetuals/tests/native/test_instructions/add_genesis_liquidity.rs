@@ -112,7 +112,7 @@ pub async fn add_genesis_liquidity(
             lp_stake_resolution_thread: locked_stake_resolution_thread_address,
             stakes_claim_cron_thread: lp_stakes_claim_cron_thread_address,
             lp_user_staking_thread_authority: lp_user_staking_thread_authority_pda,
-            clockwork_program: clockwork_sdk::ID,
+            clockwork_program: Pubkey::default(),
             governance_program: spl_governance_program_adapter::ID,
             perpetuals_program: perpetuals::ID,
             system_program: anchor_lang::system_program::ID,

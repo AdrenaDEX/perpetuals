@@ -69,7 +69,7 @@ pub async fn init_user_staking(
             lm_token_mint: lm_token_mint_pda,
             staking_reward_token_mint: staking_account.reward_token_mint,
             perpetuals_program: perpetuals::ID,
-            clockwork_program: clockwork_sdk::ID,
+            clockwork_program: Pubkey::default(),
             system_program: anchor_lang::system_program::ID,
             token_program: anchor_spl::token::ID,
         }

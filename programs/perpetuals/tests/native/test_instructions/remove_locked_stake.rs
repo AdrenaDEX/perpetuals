@@ -92,7 +92,7 @@ pub async fn remove_locked_stake(
             governance_governing_token_owner_record: governance_governing_token_owner_record_pda,
             stakes_claim_cron_thread: stakes_claim_cron_thread_address,
             user_staking_thread_authority: user_staking_thread_authority_pda,
-            clockwork_program: clockwork_sdk::ID,
+            clockwork_program: Pubkey::default(),
             governance_program: spl_governance_program_adapter::ID,
             perpetuals_program: perpetuals::ID,
             system_program: anchor_lang::system_program::ID,

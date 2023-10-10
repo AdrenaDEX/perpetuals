@@ -17,7 +17,7 @@ use {
         },
     },
     solana_program::pubkey::Pubkey,
-    solana_program_test::{ProgramTest, ProgramTestContext},
+    solana_program_test::{processor, ProgramTest, ProgramTestContext},
     solana_sdk::{signature::Keypair, signer::Signer},
     std::collections::HashMap,
     tokio::sync::RwLock,
@@ -222,9 +222,6 @@ impl TestSetup {
             );
 
             utils::add_spl_governance_program(&mut program_test, program_authority_keypair).await;
-            utils::add_clockwork_network_program(&mut program_test, program_authority_keypair)
-                .await;
-            utils::add_clockwork_thread_program(&mut program_test, program_authority_keypair).await;
         }
 
         // Start the client and connect to localnet validator

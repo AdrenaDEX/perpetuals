@@ -12,8 +12,12 @@ use {
         state::{custody::Custody, perpetuals::Perpetuals, pool::TokenRatios},
     },
     solana_program::{
-        borsh::try_from_slice_unchecked, bpf_loader_upgradeable, clock::SLOT_MS,
-        epoch_schedule::DEFAULT_SLOTS_PER_EPOCH, program_pack::Pack, stake_history::Epoch,
+        borsh::try_from_slice_unchecked,
+        bpf_loader_upgradeable,
+        clock::{DEFAULT_MS_PER_SLOT, SLOT_MS},
+        epoch_schedule::DEFAULT_SLOTS_PER_EPOCH,
+        program_pack::Pack,
+        stake_history::Epoch,
     },
     solana_program_test::{read_file, BanksClientError, ProgramTest, ProgramTestContext},
     solana_sdk::{
@@ -178,98 +182,6 @@ pub async fn mint_tokens(
     ctx.mint_tokens(mint_authority, mint, token_account, amount)
         .await
         .unwrap();
-}
-
-pub async fn add_clockwork_network_program(
-    program_test: &mut ProgramTest,
-    upgrade_authority: &Keypair,
-) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/clockwork_network_program_2_0_17.so",
-    )));
-
-    let program_data_pda = Pubkey::find_program_address(
-        &[clockwork_network_program::ID.as_ref()],
-        &solana_program::bpf_loader_upgradeable::id(),
-    )
-    .0;
-
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
-
-    let serialized_program = bincode::serialize(&program).unwrap();
-
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
-
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
-
-    program_test.add_account(clockwork_network_program::ID, program_account);
-    program_test.add_account(program_data_pda, program_data_account);
-}
-
-pub async fn add_clockwork_thread_program(
-    program_test: &mut ProgramTest,
-    upgrade_authority: &Keypair,
-) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/clockwork_thread_program_2_0_17.so",
-    )));
-
-    let program_data_pda = Pubkey::find_program_address(
-        &[clockwork_sdk::ID.as_ref()],
-        &solana_program::bpf_loader_upgradeable::id(),
-    )
-    .0;
-
-    let program = UpgradeableLoaderState::Program {
-        programdata_address: program_data_pda,
-    };
-    let program_data = UpgradeableLoaderState::ProgramData {
-        slot: 1,
-        upgrade_authority_address: Some(upgrade_authority.pubkey()),
-    };
-
-    let serialized_program = bincode::serialize(&program).unwrap();
-
-    let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
-    serialized_program_data.append(&mut program_bytes);
-
-    let program_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program.len()),
-        data: serialized_program,
-        owner: bpf_loader_upgradeable::ID,
-        executable: true,
-        rent_epoch: Epoch::default(),
-    };
-    let program_data_account = account::Account {
-        lamports: Rent::default().minimum_balance(serialized_program_data.len()),
-        data: serialized_program_data,
-        owner: bpf_loader_upgradeable::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
-
-    program_test.add_account(clockwork_sdk::ID, program_account);
-    program_test.add_account(program_data_pda, program_data_account);
 }
 
 pub async fn add_spl_governance_program(
