@@ -3,7 +3,10 @@ use {
     perpetuals::adapters::spl_governance_program_adapter,
     solana_program_test::{BanksClientError, ProgramTestContext},
     solana_sdk::signer::{keypair::Keypair, Signer},
-    spl_governance::state::proposal::VoteType,
+    spl_governance::{
+        instruction::AddSignatoryAuthority,
+        state::{proposal::VoteType, token_owner_record},
+    },
     tokio::sync::RwLock,
 };
 
@@ -53,12 +56,22 @@ pub async fn create_proposal(
         (proposal_pda, ix)
     };
 
+    let token_owner_record_key = token_owner_record::get_token_owner_record_address(
+        &perpetuals::id(),
+        &realm_pda,
+        &governing_token_mint,
+        &governing_token_owner,
+    );
+
     // Add signatory (governance_authority)
     let add_signatory_ix = spl_governance::instruction::add_signatory(
         &spl_governance_program_adapter::id(),
         &proposal_pda,
         &proposal_owner_record,
-        &governance_authority.pubkey(),
+        &AddSignatoryAuthority::ProposalOwner {
+            governance_authority: governance_authority.pubkey(),
+            token_owner_record: token_owner_record_key,
+        },
         &payer.pubkey(),
         &governance_authority.pubkey(),
     );

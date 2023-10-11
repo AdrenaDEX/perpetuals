@@ -1,9 +1,11 @@
 [workspace]
 members = ["programs/*"]
+
 [patch.crates-io.chrono]
 version = "=0.4.26"
 git = "https://github.com/adrena-orex/chrono"
 branch = "0.4.x"
+
 [profile.release]
 overflow-checks = true
 lto = "fat"

@@ -247,6 +247,50 @@ pub async fn create_and_fund_multiple_accounts(
     keypairs
 }
 
+// // Deploy the perpetuals program onchain as upgradeable program
+// pub async fn add_perpetuals_program(program_test: &mut ProgramTest, upgrade_authority: &Keypair) {
+//     // Deploy two accounts, one describing the program
+//     // and a second one holding the program's binary bytes
+//     let mut program_bytes = read_file(
+//         std::env::current_dir()
+//             .unwrap()
+//             .join(Path::new("../../target/deploy/perpetuals.so")),
+//     );
+
+//     let program_data_pda = get_program_data_pda().0;
+
+//     let program = UpgradeableLoaderState::Program {
+//         programdata_address: program_data_pda,
+//     };
+//     let program_data = UpgradeableLoaderState::ProgramData {
+//         slot: 1,
+//         upgrade_authority_address: Some(upgrade_authority.pubkey()),
+//     };
+
+//     let serialized_program = bincode::serialize(&program).unwrap();
+
+//     let mut serialized_program_data = bincode::serialize(&program_data).unwrap();
+//     serialized_program_data.append(&mut program_bytes);
+
+//     let program_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program.len()),
+//         data: serialized_program,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: true,
+//         rent_epoch: Epoch::default(),
+//     };
+//     let program_data_account = account::Account {
+//         lamports: Rent::default().minimum_balance(serialized_program_data.len()),
+//         data: serialized_program_data,
+//         owner: bpf_loader_upgradeable::ID,
+//         executable: false,
+//         rent_epoch: Epoch::default(),
+//     };
+
+//     program_test.add_account(perpetuals::id(), program_account);
+//     program_test.add_account(program_data_pda, program_data_account);
+// }
+
 pub async fn create_and_simulate_perpetuals_view_ix<T: InstructionData, U: BorshDeserialize>(
     program_test_ctx: &RwLock<ProgramTestContext>,
     accounts_meta: Vec<AccountMeta>,

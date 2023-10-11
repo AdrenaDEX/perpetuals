@@ -120,6 +120,7 @@ pub struct InitUserStaking<'info> {
     pub staking_reward_token_mint: Box<Account<'info, Mint>>,
 
     perpetuals_program: Program<'info, program::Perpetuals>,
+    /// CHECK:
     clockwork_program: AccountInfo<'info>, //Program<'info, clockwork_sdk::ThreadProgram>,
     system_program: Program<'info, System>,
     token_program: Program<'info, Token>,

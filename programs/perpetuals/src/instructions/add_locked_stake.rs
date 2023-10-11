@@ -137,7 +137,8 @@ pub struct AddLockedStake<'info> {
         bump = user_staking.thread_authority_bump
     )]
     pub user_staking_thread_authority: AccountInfo<'info>,
-
+    
+    /// CHECK:
     clockwork_program: AccountInfo<'info>, // Program<'info, clockwork_sdk::ThreadProgram>,
     governance_program: Program<'info, SplGovernanceV3Adapter>,
     perpetuals_program: Program<'info, program::Perpetuals>,

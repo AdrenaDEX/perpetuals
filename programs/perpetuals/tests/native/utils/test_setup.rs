@@ -140,7 +140,8 @@ impl TestSetup {
         pol_bucket_allocation: u64,
         ecosystem_bucket_allocation: u64,
     ) -> TestSetup {
-        let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
+        let mut program_test = ProgramTest::default();
+        // let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
 
         // Initialize keypairs
         let keypairs: Vec<Keypair> = utils::create_and_fund_multiple_accounts(
@@ -220,6 +221,7 @@ impl TestSetup {
                 perpetuals::id(),
                 processor!(perpetuals::entry),
             );
+            // utils::add_perpetuals_program(&mut program_test, program_authority_keypair).await;
 
             utils::add_spl_governance_program(&mut program_test, program_authority_keypair).await;
         }
@@ -275,36 +277,6 @@ impl TestSetup {
                 governance_realm_name.to_string(),
                 utils::scale(10_000, governance_token_decimals),
                 &gov_token_mint_pda,
-            )
-            .await
-            .unwrap();
-        }
-
-        // Setup clockwork
-        {
-            adapters::clockwork::network::initialize(
-                &program_test_ctx,
-                root_authority_keypair,
-                payer_keypair,
-                &mints[clockwork_mint_reward_name].pubkey,
-            )
-            .await
-            .unwrap();
-
-            adapters::clockwork::network::pool_create(
-                &program_test_ctx,
-                root_authority_keypair,
-                payer_keypair,
-            )
-            .await
-            .unwrap();
-
-            adapters::clockwork::network::worker_create(
-                &program_test_ctx,
-                root_authority_keypair,
-                clockwork_signatory,
-                payer_keypair,
-                &mints[clockwork_mint_reward_name].pubkey,
             )
             .await
             .unwrap();

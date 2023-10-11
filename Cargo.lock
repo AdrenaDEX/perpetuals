@@ -676,9 +676,9 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
 name = "bonfida-test-utils"
-version = "0.2.1"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6334e5e149cdc5dec2c9e596a113d0e615b9dec6c19bfd78f65a243ea079e13b"
+checksum = "a6764a74c1492aa9b308de3725a3273777307f61815414f1a9d5edb9e9cc0229"
 dependencies = [
  "async-trait",
  "solana-program",
@@ -4753,7 +4753,7 @@ dependencies = [
 [[package]]
 name = "spl-governance"
 version = "3.1.1"
-source = "git+https://github.com/solana-labs/solana-program-library?rev=cd79bba#cd79bba17331235ab489bae56600043ea853c70b"
+source = "git+https://github.com/solana-labs/solana-program-library#f76276e91df169d045d5c9c1b240c1923bdd72e3"
 dependencies = [
  "arrayref",
  "bincode",
@@ -4772,7 +4772,7 @@ dependencies = [
 [[package]]
 name = "spl-governance-addin-api"
 version = "0.1.3"
-source = "git+https://github.com/solana-labs/solana-program-library?rev=cd79bba#cd79bba17331235ab489bae56600043ea853c70b"
+source = "git+https://github.com/solana-labs/solana-program-library#f76276e91df169d045d5c9c1b240c1923bdd72e3"
 dependencies = [
  "borsh 0.10.3",
  "solana-program",
@@ -4782,7 +4782,7 @@ dependencies = [
 [[package]]
 name = "spl-governance-tools"
 version = "0.1.3"
-source = "git+https://github.com/solana-labs/solana-program-library?rev=cd79bba#cd79bba17331235ab489bae56600043ea853c70b"
+source = "git+https://github.com/solana-labs/solana-program-library#f76276e91df169d045d5c9c1b240c1923bdd72e3"
 dependencies = [
  "arrayref",
  "bincode",
@@ -4823,7 +4823,7 @@ dependencies = [
 [[package]]
 name = "spl-token"
 version = "4.0.0"
-source = "git+https://github.com/solana-labs/solana-program-library?rev=cd79bba#cd79bba17331235ab489bae56600043ea853c70b"
+source = "git+https://github.com/solana-labs/solana-program-library#f76276e91df169d045d5c9c1b240c1923bdd72e3"
 dependencies = [
  "arrayref",
  "bytemuck",

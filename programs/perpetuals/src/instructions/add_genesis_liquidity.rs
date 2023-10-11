@@ -174,6 +174,7 @@ pub struct AddGenesisLiquidity<'info> {
     )]
     pub lp_user_staking_thread_authority: AccountInfo<'info>,
 
+    /// CHECK:
     clockwork_program: AccountInfo<'info>, //Program<'info, clockwork_sdk::ThreadProgram>,
     governance_program: Program<'info, SplGovernanceV3Adapter>,
     system_program: Program<'info, System>,

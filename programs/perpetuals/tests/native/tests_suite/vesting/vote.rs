@@ -2,6 +2,7 @@ use {
     crate::{adapters, test_instructions, utils},
     maplit::hashmap,
     perpetuals::{instructions::AddVestParams, state::cortex::Cortex},
+    spl_governance::state::token_owner_record,
 };
 
 const USDC_DECIMALS: u8 = 6;

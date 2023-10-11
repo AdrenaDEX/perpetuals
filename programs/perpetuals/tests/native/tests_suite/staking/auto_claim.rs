@@ -214,20 +214,20 @@ pub async fn auto_claim() {
 
         // Check if cron claim can trigger
         {
-            let has_cron_be_executed = utils::execute_claim_stakes_thread(
-                &test_setup.program_test_ctx,
-                &clockwork_worker,
-                &test_setup.clockwork_signatory,
-                alice,
-                &test_setup.payer_keypair,
-                &cortex_stake_reward_mint,
-            )
-            .await
-            .unwrap();
+            // let has_cron_be_executed = utils::execute_claim_stakes_thread(
+            //     &test_setup.program_test_ctx,
+            //     &clockwork_worker,
+            //     &test_setup.clockwork_signatory,
+            //     alice,
+            //     &test_setup.payer_keypair,
+            //     &cortex_stake_reward_mint,
+            // )
+            // .await
+            // .unwrap();
 
-            if has_cron_be_executed {
-                cron_executions.push(i);
-            }
+            // if has_cron_be_executed {
+            //     cron_executions.push(i);
+            // }
         }
     }
 

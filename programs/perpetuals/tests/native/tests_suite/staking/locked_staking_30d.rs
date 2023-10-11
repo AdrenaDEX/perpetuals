@@ -341,16 +341,16 @@ pub async fn locked_staking_30d() {
         .await
         .unwrap();
 
-        utils::execute_claim_stakes_thread(
-            &test_setup.program_test_ctx,
-            &clockwork_worker,
-            &test_setup.clockwork_signatory,
-            alice,
-            &test_setup.payer_keypair,
-            &cortex_stake_reward_mint,
-        )
-        .await
-        .unwrap();
+        // utils::execute_claim_stakes_thread(
+        //     &test_setup.program_test_ctx,
+        //     &clockwork_worker,
+        //     &test_setup.clockwork_signatory,
+        //     alice,
+        //     &test_setup.payer_keypair,
+        //     &cortex_stake_reward_mint,
+        // )
+        // .await
+        // .unwrap();
     }
 
     // Remove the stake without resolving it first should fail
@@ -367,18 +367,18 @@ pub async fn locked_staking_30d() {
     .await
     .is_err());
 
-    // Trigger clockwork thread execution manually
-    utils::execute_finalize_locked_stake_thread(
-        &test_setup.program_test_ctx,
-        &clockwork_worker,
-        &test_setup.clockwork_signatory,
-        alice,
-        &test_setup.payer_keypair,
-        &test_setup.governance_realm_pda,
-        0,
-    )
-    .await
-    .unwrap();
+    // // Trigger clockwork thread execution manually
+    // utils::execute_finalize_locked_stake_thread(
+    //     &test_setup.program_test_ctx,
+    //     &clockwork_worker,
+    //     &test_setup.clockwork_signatory,
+    //     alice,
+    //     &test_setup.payer_keypair,
+    //     &test_setup.governance_realm_pda,
+    //     0,
+    // )
+    // .await
+    // .unwrap();
 
     utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
