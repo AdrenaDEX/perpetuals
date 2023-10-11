@@ -33,7 +33,7 @@ num-traits = "0.2.15"
 num = "0.4.0"
 bytemuck = "1.13.1"
 
-spl-governance = { git = "https://github.com/solana-labs/solana-program-library", features = [
+spl-governance = { rev = "cd79bba17331235ab489bae56600043ea853c70b", git = "https://github.com/solana-labs/solana-program-library", features = [
     "no-entrypoint",
 ] }
 
