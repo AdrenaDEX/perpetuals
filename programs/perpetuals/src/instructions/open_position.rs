@@ -458,6 +458,9 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     collateral_custody.assets.protocol_fees =
         math::checked_add(collateral_custody.assets.protocol_fees, protocol_fee)?;
 
+    msg!("fee_amount: {}", fee_amount);
+    msg!("protocol_fee: {}", protocol_fee);
+
     //
     // Calculate fee distribution between (Staked LM, Locked Staked LP, Organic LP)
     //
@@ -466,6 +469,8 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         ctx.accounts.lp_token_mint.as_ref(),
         ctx.accounts.lp_staking.as_ref(),
     )?;
+
+    msg!("fee_distribution: {:?}", fee_distribution);
 
     // update custody stats
     msg!("Update custody stats");

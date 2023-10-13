@@ -128,7 +128,10 @@ pub struct BorrowRateState {
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
 pub struct PositionStats {
     pub open_positions: u64,
+
+    #[deprecated(since = "0.1.0", note = "never updated")]
     pub collateral_usd: u64,
+
     pub size_usd: u64,
     pub borrow_size_usd: u64,
     pub locked_amount: u64,

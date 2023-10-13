@@ -17,6 +17,7 @@ pub async fn test_integration() {
     tests_suite::position::min_max_leverage().await;
     tests_suite::position::liquidate_position().await;
     tests_suite::position::max_user_profit().await;
+    tests_suite::position::open_and_close_long_position_accounting().await;
 
     tests_suite::staking::staking_rewards_generation().await;
     tests_suite::staking::liquid_staking().await;

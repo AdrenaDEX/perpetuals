@@ -283,6 +283,18 @@ i.e
 npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-vest --beneficiary-wallet 6hqz24NfaMwEvUna95p7haPqrh2urVwyVo1gLHEqUVXY --amount 10000 --unlock-start-timestamp 1694073600 --unlock-end-timestamp 1788768000
 ```
 
+## Claim vest
+
+```
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> claim-vest
+```
+
+i.e
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json claim-vest
+```
+
 ## Admin remove collateral from user position
 
 ## Liquidator run
