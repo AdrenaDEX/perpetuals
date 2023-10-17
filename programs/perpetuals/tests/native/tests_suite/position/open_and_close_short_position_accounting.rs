@@ -10,6 +10,7 @@ use {
             position::{Position, Side},
         },
     },
+    solana_sdk::signer::Signer,
 };
 
 const ETH_DECIMALS: u8 = 9;
@@ -112,10 +113,20 @@ pub async fn open_and_close_short_position_accounting() {
     let usdc_custody_pda = test_setup.custodies_info[0].custody_pda;
     let eth_custody_pda = test_setup.custodies_info[1].custody_pda;
 
+    let martin_usdc_ata =
+        utils::find_associated_token_account(&martin.try_pubkey().unwrap(), usdc_mint).0;
+    let martin_eth_ata =
+        utils::find_associated_token_account(&martin.try_pubkey().unwrap(), eth_mint).0;
+
     let eth_custody_account_before =
         utils::get_account::<Custody>(&test_setup.program_test_ctx, eth_custody_pda).await;
     let usdc_custody_account_before =
         utils::get_account::<Custody>(&test_setup.program_test_ctx, usdc_custody_pda).await;
+
+    let martin_usdc_ata_balance_before =
+        utils::get_token_account_balance(&test_setup.program_test_ctx, martin_usdc_ata).await;
+    let martin_eth_ata_balance_before =
+        utils::get_token_account_balance(&test_setup.program_test_ctx, martin_eth_ata).await;
 
     // Martin: Open 1 ETH short with 500 USDC
     let position_pda = test_instructions::open_position(
@@ -141,9 +152,26 @@ pub async fn open_and_close_short_position_accounting() {
     {
         let eth_custody_account_after =
             utils::get_account::<Custody>(&test_setup.program_test_ctx, eth_custody_pda).await;
-
         let usdc_custody_account_after =
             utils::get_account::<Custody>(&test_setup.program_test_ctx, usdc_custody_pda).await;
+
+        let martin_usdc_ata_balance_after =
+            utils::get_token_account_balance(&test_setup.program_test_ctx, martin_usdc_ata).await;
+        let martin_eth_ata_balance_after =
+            utils::get_token_account_balance(&test_setup.program_test_ctx, martin_eth_ata).await;
+
+        // Check user balance
+        {
+            // USDC
+            assert_eq!(
+                // Paid 500 USDC as collateral + 15 USDC as fees
+                martin_usdc_ata_balance_before - 515_000_000,
+                martin_usdc_ata_balance_after
+            );
+
+            // ETH
+            assert_unchanged!(martin_eth_ata_balance_before, martin_eth_ata_balance_after);
+        }
 
         // Check the position PDA info
         {
@@ -421,9 +449,13 @@ pub async fn open_and_close_short_position_accounting() {
 
     let eth_custody_account_before =
         utils::get_account::<Custody>(&test_setup.program_test_ctx, eth_custody_pda).await;
-
     let usdc_custody_account_before =
         utils::get_account::<Custody>(&test_setup.program_test_ctx, usdc_custody_pda).await;
+
+    let martin_usdc_ata_balance_before =
+        utils::get_token_account_balance(&test_setup.program_test_ctx, martin_usdc_ata).await;
+    let martin_eth_ata_balance_before =
+        utils::get_token_account_balance(&test_setup.program_test_ctx, martin_eth_ata).await;
 
     // Martin: Close the ETH position
     test_instructions::close_position(
@@ -445,6 +477,33 @@ pub async fn open_and_close_short_position_accounting() {
             utils::get_account::<Custody>(&test_setup.program_test_ctx, eth_custody_pda).await;
         let usdc_custody_account_after =
             utils::get_account::<Custody>(&test_setup.program_test_ctx, usdc_custody_pda).await;
+
+        let martin_usdc_ata_balance_after =
+            utils::get_token_account_balance(&test_setup.program_test_ctx, martin_usdc_ata).await;
+        let martin_eth_ata_balance_after =
+            utils::get_token_account_balance(&test_setup.program_test_ctx, martin_eth_ata).await;
+
+        // Check user balance
+        {
+            // USDC
+            assert_eq!(
+                // User getting 106.650 USDC of profit
+                //
+                // ETH priced dropped of 10%
+                // theorically $150 of profit for user (without spread and fees)
+                //
+                // user getting $121,5
+                // exit_price - entry_position_price (both taking into account spread)
+                //
+                // Fees: $14.85
+                // Total amount earned: $106.650
+                martin_usdc_ata_balance_before + 606_650_000,
+                martin_usdc_ata_balance_after
+            );
+
+            // ETH
+            assert_unchanged!(martin_eth_ata_balance_before, martin_eth_ata_balance_after);
+        }
 
         // Double check effect of closing position on ETH custody accounting
         {
