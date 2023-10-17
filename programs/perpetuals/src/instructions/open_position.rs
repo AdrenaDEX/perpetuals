@@ -305,8 +305,8 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     let collateral_usd = min_collateral_price
         .get_asset_amount_usd(params.collateral, collateral_custody.decimals)?;
 
-    // in collateral_token
     let locked_amount = if use_collateral_custody {
+        // Apply max payoff from custody to the collateral amount
         custody.get_locked_amount(
             min_collateral_price.get_token_amount(size_usd, collateral_custody.decimals)?,
             params.side,
@@ -315,7 +315,7 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         custody.get_locked_amount(params.size, params.side)?
     };
 
-    let borrow_size_usd = if custody.pricing.max_payoff_mult as u128 != Perpetuals::BPS_POWER {
+    let borrow_size_usd: u64 = if custody.pricing.max_payoff_mult as u128 != Perpetuals::BPS_POWER {
         if use_collateral_custody {
             let max_collateral_price = if collateral_token_price < collateral_token_ema_price {
                 collateral_token_ema_price
@@ -366,6 +366,7 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     position.unrealized_profit_usd = 0;
     position.unrealized_loss_usd = 0;
     position.cumulative_interest_snapshot = collateral_custody.get_cumulative_interest(curtime)?;
+    // collateral amount
     position.locked_amount = locked_amount;
     position.collateral_amount = params.collateral;
     position.bump = *ctx
@@ -515,7 +516,17 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         custody.trade_stats.oi_short_usd =
             math::checked_add(custody.trade_stats.oi_short_usd, size_usd)?;
     }
-    custody.add_position(position, &token_ema_price, curtime, None)?;
+
+    if use_collateral_custody {
+        custody.add_position(
+            position,
+            &collateral_token_ema_price,
+            curtime,
+            Some(collateral_custody),
+        )?;
+    } else {
+        custody.add_position(position, &token_ema_price, curtime, None)?;
+    }
     custody.update_borrow_rate(curtime)?;
 
     if !use_collateral_custody {

@@ -126,6 +126,7 @@ pub async fn basic_interactions() {
             &test_setup.payer_keypair,
             &test_setup.pool_pda,
             eth_mint,
+            None,
             OpenPositionParams {
                 // max price paid (slippage implied)
                 price: utils::scale(1_550, USDC_DECIMALS),
@@ -144,7 +145,6 @@ pub async fn basic_interactions() {
             martin,
             &test_setup.payer_keypair,
             &test_setup.pool_pda,
-            eth_mint,
             &position_pda,
             ClosePositionParams {
                 // lowest exit price paid (slippage implied)

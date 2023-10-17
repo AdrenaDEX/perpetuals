@@ -17,6 +17,7 @@ pub async fn open_position(
     payer: &Keypair,
     pool_pda: &Pubkey,
     custody_token_mint: &Pubkey,
+    collateral_custody_token_mint: Option<&Pubkey>,
     params: OpenPositionParams,
 ) -> std::result::Result<(Pubkey, u8), BanksClientError> {
     // ==== WHEN ==============================================================
@@ -25,8 +26,24 @@ pub async fn open_position(
     let transfer_authority_pda = pda::get_transfer_authority_pda().0;
     let perpetuals_pda = pda::get_perpetuals_pda().0;
     let custody_pda = pda::get_custody_pda(pool_pda, custody_token_mint).0;
+
+    let collateral_custody_pda = if collateral_custody_token_mint.is_some() {
+        pda::get_custody_pda(pool_pda, collateral_custody_token_mint.unwrap()).0
+    } else {
+        custody_pda
+    };
+
     let custody_token_account_pda =
         pda::get_custody_token_account_pda(pool_pda, custody_token_mint).0;
+
+    let collateral_custody_token_account_pda = if collateral_custody_token_mint.is_some() {
+        pda::get_custody_token_account_pda(pool_pda, collateral_custody_token_mint.unwrap()).0
+    } else {
+        custody_token_account_pda
+    };
+
+    pda::get_custody_token_account_pda(pool_pda, custody_token_mint).0;
+
     let cortex_pda = pda::get_cortex_pda().0;
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
     let lp_token_mint_pda = pda::get_lp_token_mint_pda(pool_pda).0;
@@ -35,13 +52,25 @@ pub async fn open_position(
     let lm_staking_pda = pda::get_staking_pda(&lm_token_mint_pda).0;
     let lp_staking_pda = pda::get_staking_pda(&lp_token_mint_pda).0;
 
-    let funding_account_address =
-        utils::find_associated_token_account(&owner.pubkey(), custody_token_mint).0;
+    let funding_account_address = if collateral_custody_token_mint.is_some() {
+        utils::find_associated_token_account(
+            &owner.pubkey(),
+            collateral_custody_token_mint.unwrap(),
+        )
+        .0
+    } else {
+        utils::find_associated_token_account(&owner.pubkey(), custody_token_mint).0
+    };
     let lm_token_account_address =
         utils::find_associated_token_account(&owner.pubkey(), &lm_token_mint_pda).0;
 
     let custody_account = utils::get_account::<Custody>(program_test_ctx, custody_pda).await;
     let custody_oracle_account_address = custody_account.oracle.oracle_account;
+
+    let collateral_custody_account =
+        utils::get_account::<Custody>(program_test_ctx, collateral_custody_pda).await;
+    let collateral_custody_oracle_account_address =
+        collateral_custody_account.oracle.oracle_account;
 
     let lm_staking_reward_token_vault_pda =
         pda::get_staking_reward_token_vault_pda(&lm_staking_pda).0;
@@ -63,8 +92,8 @@ pub async fn open_position(
         utils::get_token_account(program_test_ctx, funding_account_address).await;
     let owner_lm_token_account_before =
         utils::get_token_account(program_test_ctx, lm_token_account_address).await;
-    let custody_token_account_before =
-        utils::get_token_account(program_test_ctx, custody_token_account_pda).await;
+    let collateral_custody_token_account_before =
+        utils::get_token_account(program_test_ctx, collateral_custody_token_account_pda).await;
 
     utils::create_and_execute_perpetuals_ix(
         program_test_ctx,
@@ -89,9 +118,9 @@ pub async fn open_position(
             lm_token_mint: lm_token_mint_pda,
             lp_token_mint: lp_token_mint_pda,
             staking_reward_token_mint: lm_staking_account.reward_token_mint,
-            collateral_custody: custody_pda,
-            collateral_custody_oracle_account: custody_oracle_account_address,
-            collateral_custody_token_account: custody_token_account_pda,
+            collateral_custody: collateral_custody_pda,
+            collateral_custody_oracle_account: collateral_custody_oracle_account_address,
+            collateral_custody_token_account: collateral_custody_token_account_pda,
             system_program: anchor_lang::system_program::ID,
             token_program: anchor_spl::token::ID,
             perpetuals_program: perpetuals::ID,
@@ -112,12 +141,15 @@ pub async fn open_position(
             utils::get_token_account(program_test_ctx, funding_account_address).await;
         let owner_lm_token_account_after =
             utils::get_token_account(program_test_ctx, lm_token_account_address).await;
-        let custody_token_account_after =
-            utils::get_token_account(program_test_ctx, custody_token_account_pda).await;
+        let collateral_custody_token_account_after =
+            utils::get_token_account(program_test_ctx, collateral_custody_token_account_pda).await;
 
         assert!(owner_funding_account_after.amount < owner_funding_account_before.amount);
         assert!(owner_lm_token_account_after.amount > owner_lm_token_account_before.amount);
-        assert!(custody_token_account_after.amount > custody_token_account_before.amount);
+        assert!(
+            collateral_custody_token_account_after.amount
+                > collateral_custody_token_account_before.amount
+        );
     }
 
     // Check the position

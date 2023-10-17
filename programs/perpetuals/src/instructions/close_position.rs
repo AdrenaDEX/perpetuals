@@ -280,6 +280,12 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
             .get_token_amount(fee_amount_usd, collateral_custody.decimals)?;
     }
 
+    msg!("transfer_amount: {}", transfer_amount);
+    msg!("fee_amount: {}", fee_amount);
+    msg!("fee_amount_usd: {}", fee_amount_usd);
+    msg!("profit_usd: {}", profit_usd);
+    msg!("loss_usd: {}", loss_usd);
+
     // unlock pool funds
     collateral_custody.unlock_funds(position.locked_amount)?;
 
@@ -407,11 +413,10 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
             math::checked_sub(collateral_custody.assets.owned, protocol_fee)?;
     }
 
+    // if custody and collateral_custody accounts are the same, ensure that data is in sync
     if !use_collateral_custody {
         *custody = collateral_custody.clone();
     }
-
-    // if custody and collateral_custody accounts are the same, ensure that data is in sync
 
     custody.volume_stats.close_position_usd = custody
         .volume_stats
@@ -433,10 +438,14 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
     custody.trade_stats.profit_usd = custody.trade_stats.profit_usd.wrapping_add(profit_usd);
     custody.trade_stats.loss_usd = custody.trade_stats.loss_usd.wrapping_add(loss_usd);
 
-    custody.remove_position(position, curtime, None)?;
-    custody.update_borrow_rate(curtime)?;
-
-    custody.update_borrow_rate(curtime)?;
+    if use_collateral_custody {
+        custody.remove_position(position, curtime, Some(collateral_custody))?;
+        collateral_custody.update_borrow_rate(curtime)?;
+        custody.update_borrow_rate(curtime)?;
+    } else {
+        custody.remove_position(position, curtime, None)?;
+        custody.update_borrow_rate(curtime)?;
+    }
 
     if use_collateral_custody {
         collateral_custody.update_borrow_rate(curtime)?;

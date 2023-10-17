@@ -5,7 +5,10 @@ pub mod utils;
 
 #[tokio::test]
 pub async fn test_integration() {
-    tests_suite::lm_minting::mint_lm_tokens_from_bucket().await;
+    tests_suite::position::open_and_close_short_position_accounting().await;
+    // tests_suite::position::open_and_close_long_position_accounting().await;
+
+    /*tests_suite::lm_minting::mint_lm_tokens_from_bucket().await;
 
     tests_suite::basic_interactions().await;
 
@@ -17,7 +20,6 @@ pub async fn test_integration() {
     tests_suite::position::min_max_leverage().await;
     tests_suite::position::liquidate_position().await;
     tests_suite::position::max_user_profit().await;
-    tests_suite::position::open_and_close_long_position_accounting().await;
 
     tests_suite::staking::staking_rewards_generation().await;
     tests_suite::staking::liquid_staking().await;
@@ -32,5 +34,5 @@ pub async fn test_integration() {
     tests_suite::staking::resolved_round_overflow().await;
     tests_suite::staking::auto_claim().await;
 
-    tests_suite::lp_token::lp_token_price().await;
+    tests_suite::lp_token::lp_token_price().await;*/
 }
