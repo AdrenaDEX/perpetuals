@@ -149,7 +149,10 @@ pub struct InitParams {
     pub ecosystem_bucket_allocation: u64,
 }
 
-pub fn init(ctx: Context<Init>, params: &InitParams) -> Result<()> {
+pub fn init<'info>(
+    ctx: Context<'_, '_, '_, 'info, Init<'info>>,
+    params: &InitParams,
+) -> Result<()> {
     Perpetuals::validate_upgrade_authority(
         ctx.accounts.upgrade_authority.key(),
         &ctx.accounts.perpetuals_program_data.to_account_info(),

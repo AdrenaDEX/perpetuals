@@ -17,7 +17,7 @@ use {
         },
     },
     solana_program::pubkey::Pubkey,
-    solana_program_test::{ProgramTest, ProgramTestContext},
+    solana_program_test::{processor, ProgramTest, ProgramTestContext},
     solana_sdk::{signature::Keypair, signer::Signer},
     std::collections::HashMap,
     tokio::sync::RwLock,
@@ -140,7 +140,7 @@ impl TestSetup {
         pol_bucket_allocation: u64,
         ecosystem_bucket_allocation: u64,
     ) -> TestSetup {
-        let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
+        let mut program_test = ProgramTest::default();
 
         // Initialize keypairs
         let keypairs: Vec<Keypair> = utils::create_and_fund_multiple_accounts(

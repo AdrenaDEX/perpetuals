@@ -12,8 +12,12 @@ use {
         state::{custody::Custody, perpetuals::Perpetuals, pool::TokenRatios},
     },
     solana_program::{
-        borsh::try_from_slice_unchecked, bpf_loader_upgradeable, clock::SLOT_MS,
-        epoch_schedule::DEFAULT_SLOTS_PER_EPOCH, program_pack::Pack, stake_history::Epoch,
+        borsh::try_from_slice_unchecked,
+        bpf_loader_upgradeable,
+        clock::{DEFAULT_MS_PER_SLOT, SLOT_MS},
+        epoch_schedule::DEFAULT_SLOTS_PER_EPOCH,
+        program_pack::Pack,
+        stake_history::Epoch,
     },
     solana_program_test::{read_file, BanksClientError, ProgramTest, ProgramTestContext},
     solana_sdk::{
@@ -277,7 +281,8 @@ pub async fn add_spl_governance_program(
     upgrade_authority: &Keypair,
 ) {
     let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/spl_governance_3_1_0.so",
+        // "tests/native/external_programs_binaries/spl_governance_3_1_0.so",
+        "tests/native/external_programs_binaries/spl_governance_cd79b.so",
     )));
 
     let program_data_pda = Pubkey::find_program_address(
