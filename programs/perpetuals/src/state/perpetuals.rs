@@ -5,7 +5,10 @@ use {
         pool::Pool,
         staking::Staking,
     },
-    crate::{adapters, instructions::SwapParams},
+    crate::{
+        adapters,
+        instructions::{open_position::OpenPositionParams, SwapParams},
+    },
     anchor_lang::prelude::*,
     anchor_spl::token::{Burn, Mint, MintTo, TokenAccount, Transfer},
     num_traits::Zero,
@@ -316,6 +319,7 @@ impl Perpetuals {
                     msg!("Swap collected fees to stake reward mint internally");
                     self.internal_swap(
                         transfer_authority.clone(),
+                        transfer_authority.clone(),
                         custody_token_account.to_account_info(),
                         lm_staking_reward_token_vault.to_account_info(),
                         lm_token_account.to_account_info(),
@@ -389,6 +393,7 @@ impl Perpetuals {
                     msg!("Swap collected fees to stake reward mint internally");
                     self.internal_swap(
                         transfer_authority.clone(),
+                        transfer_authority.clone(),
                         custody_token_account.to_account_info(),
                         lp_staking_reward_token_vault.to_account_info(),
                         lm_token_account.to_account_info(),
@@ -448,7 +453,8 @@ impl Perpetuals {
     #[allow(clippy::too_many_arguments)]
     pub fn internal_swap<'a>(
         &self,
-        authority: AccountInfo<'a>,
+        owner: AccountInfo<'a>,
+        transfer_authority: AccountInfo<'a>,
         funding_account: AccountInfo<'a>,
         receiving_account: AccountInfo<'a>,
         lm_token_account: AccountInfo<'a>,
@@ -479,11 +485,12 @@ impl Perpetuals {
             &[&[b"transfer_authority", &[self.transfer_authority_bump]]];
 
         let cpi_accounts = crate::cpi::accounts::Swap {
-            owner: authority.clone(),
+            owner,
             funding_account,
             receiving_account,
             lm_token_account,
-            transfer_authority: authority,
+            // clone in case owner is transfer_authority, otherwise it triggers memory issue
+            transfer_authority: transfer_authority.clone(),
             cortex,
             perpetuals,
             lm_staking,
@@ -512,6 +519,80 @@ impl Perpetuals {
             .with_signer(authority_seeds);
 
         crate::cpi::swap(cpi_context, params)
+    }
+
+    // recursive swap CPI
+    #[allow(clippy::too_many_arguments)]
+    pub fn internal_open_position<'a>(
+        &self,
+        owner: AccountInfo<'a>,
+        transfer_authority: AccountInfo<'a>,
+        payer: AccountInfo<'a>,
+        funding_account: AccountInfo<'a>,
+        lm_token_account: AccountInfo<'a>,
+        lm_staking: AccountInfo<'a>,
+        lp_staking: AccountInfo<'a>,
+        cortex: AccountInfo<'a>,
+        perpetuals: AccountInfo<'a>,
+        pool: AccountInfo<'a>,
+        position: AccountInfo<'a>,
+        staking_reward_token_custody: AccountInfo<'a>,
+        staking_reward_token_custody_oracle_account: AccountInfo<'a>,
+        staking_reward_token_custody_token_account: AccountInfo<'a>,
+        custody: AccountInfo<'a>,
+        custody_oracle_account: AccountInfo<'a>,
+        collateral_custody: AccountInfo<'a>,
+        collateral_custody_oracle_account: AccountInfo<'a>,
+        collateral_custody_token_account: AccountInfo<'a>,
+        lm_staking_reward_token_vault: AccountInfo<'a>,
+        lp_staking_reward_token_vault: AccountInfo<'a>,
+        lm_token_mint: AccountInfo<'a>,
+        lp_token_mint: AccountInfo<'a>,
+        staking_reward_token_mint: AccountInfo<'a>,
+        system_program: AccountInfo<'a>,
+        token_program: AccountInfo<'a>,
+        perpetuals_program: AccountInfo<'a>,
+        params: OpenPositionParams,
+    ) -> Result<()> {
+        let authority_seeds: &[&[&[u8]]] =
+            &[&[b"transfer_authority", &[self.transfer_authority_bump]]];
+
+        let cpi_accounts = crate::cpi::accounts::OpenPosition {
+            owner: owner.clone(),
+            payer,
+            funding_account,
+            lm_token_account,
+            transfer_authority,
+            lm_staking,
+            lp_staking,
+            cortex,
+            perpetuals,
+            pool,
+            position,
+            staking_reward_token_custody,
+            staking_reward_token_custody_oracle_account,
+            staking_reward_token_custody_token_account,
+            custody,
+            custody_oracle_account,
+            collateral_custody,
+            collateral_custody_oracle_account,
+            collateral_custody_token_account,
+            lm_staking_reward_token_vault,
+            lp_staking_reward_token_vault,
+            lm_token_mint,
+            lp_token_mint,
+            staking_reward_token_mint,
+            system_program,
+            token_program,
+            perpetuals_program: perpetuals_program.clone(),
+        };
+
+        let cpi_program = perpetuals_program;
+
+        let cpi_context = anchor_lang::context::CpiContext::new(cpi_program, cpi_accounts)
+            .with_signer(authority_seeds);
+
+        crate::cpi::open_position(cpi_context, params)
     }
 
     /// The governance is managed through the program only.

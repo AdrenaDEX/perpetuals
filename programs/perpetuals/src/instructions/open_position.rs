@@ -23,20 +23,23 @@ use {
 #[derive(Accounts)]
 #[instruction(params: OpenPositionParams)]
 pub struct OpenPosition<'info> {
-    #[account(mut)]
+    /// Check: any user account
     pub owner: Signer<'info>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
 
     #[account(
         mut,
         constraint = funding_account.mint == collateral_custody.mint,
-        has_one = owner
+        constraint = funding_account.owner == owner.key()
     )]
     pub funding_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
         constraint = lm_token_account.mint == lm_token_mint.key(),
-        has_one = owner
+        constraint = lm_token_account.owner == owner.key()
     )]
     pub lm_token_account: Box<Account<'info, TokenAccount>>,
 
@@ -86,7 +89,7 @@ pub struct OpenPosition<'info> {
 
     #[account(
         init,
-        payer = owner,
+        payer = payer,
         space = Position::LEN,
         seeds = [b"position",
                  owner.key().as_ref(),

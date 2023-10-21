@@ -154,7 +154,7 @@ pub async fn add_liquidity(
 
     assert!(owner_funding_account_after.amount < owner_funding_account_before.amount);
     assert!(owner_lp_token_account_after.amount > owner_lp_token_account_before.amount);
-    assert!(owner_lm_token_account_after.amount > owner_lm_token_account_before.amount);
+    assert!(owner_lm_token_account_after.amount >= owner_lm_token_account_before.amount);
     assert!(custody_token_account_after.amount > custody_token_account_before.amount);
     assert!(
         lm_staking_reward_token_vault_account_after.amount

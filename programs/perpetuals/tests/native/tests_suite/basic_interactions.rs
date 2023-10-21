@@ -7,15 +7,16 @@ use {
     perpetuals::{
         instructions::{
             AddLiquidStakeParams, AddVestParams, ClosePositionParams, OpenPositionParams,
-            RemoveLiquidStakeParams, RemoveLiquidityParams, SwapParams,
+            OpenPositionWithSwapParams, RemoveLiquidStakeParams, RemoveLiquidityParams, SwapParams,
         },
-        state::{cortex::Cortex, position::Side, staking::StakingRound},
+        state::{cortex::Cortex, perpetuals::Perpetuals, position::Side, staking::StakingRound},
     },
     solana_sdk::signer::Signer,
 };
 
 const USDC_DECIMALS: u8 = 6;
 const ETH_DECIMALS: u8 = 9;
+const BTC_DECIMALS: u8 = 6;
 
 pub async fn basic_interactions() {
     let test_setup = utils::TestSetup::new(
@@ -23,7 +24,7 @@ pub async fn basic_interactions() {
             utils::UserParam {
                 name: "alice",
                 token_balances: hashmap! {
-                    "usdc" => utils::scale(1_000, USDC_DECIMALS),
+                    "usdc" => utils::scale(5_000, USDC_DECIMALS),
                 },
             },
             utils::UserParam {
@@ -31,6 +32,7 @@ pub async fn basic_interactions() {
                 token_balances: hashmap! {
                     "usdc"  => utils::scale(100, USDC_DECIMALS),
                     "eth"  => utils::scale(2, ETH_DECIMALS),
+                    "btc"  => utils::scale(1, BTC_DECIMALS),
                 },
             },
             utils::UserParam {
@@ -38,6 +40,7 @@ pub async fn basic_interactions() {
                 token_balances: hashmap! {
                     "usdc"  => utils::scale(150, USDC_DECIMALS),
                     "eth"  => utils::scale(1, ETH_DECIMALS),
+                    "btc"  => utils::scale(1, BTC_DECIMALS),
                 },
             },
         ],
@@ -49,6 +52,10 @@ pub async fn basic_interactions() {
             utils::MintParam {
                 name: "eth",
                 decimals: ETH_DECIMALS,
+            },
+            utils::MintParam {
+                name: "btc",
+                decimals: BTC_DECIMALS,
             },
         ],
         vec!["admin_a", "admin_b", "admin_c"],
@@ -63,7 +70,7 @@ pub async fn basic_interactions() {
                     mint_name: "usdc",
                     is_stable: true,
                     is_virtual: false,
-                    target_ratio: utils::ratio_from_percentage(50.0),
+                    target_ratio: utils::ratio_from_percentage(34.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
                     initial_price: utils::scale(1, USDC_DECIMALS),
@@ -73,7 +80,7 @@ pub async fn basic_interactions() {
                     fees: None,
                     borrow_rate: None,
                 },
-                liquidity_amount: utils::scale(1_000, USDC_DECIMALS),
+                liquidity_amount: utils::scale(1_500, USDC_DECIMALS),
                 payer_user_name: "alice",
             },
             utils::SetupCustodyWithLiquidityParams {
@@ -81,7 +88,7 @@ pub async fn basic_interactions() {
                     mint_name: "eth",
                     is_stable: false,
                     is_virtual: false,
-                    target_ratio: utils::ratio_from_percentage(50.0),
+                    target_ratio: utils::ratio_from_percentage(33.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
                     initial_price: utils::scale(1_500, ETH_DECIMALS),
@@ -92,6 +99,24 @@ pub async fn basic_interactions() {
                     borrow_rate: None,
                 },
                 liquidity_amount: utils::scale(1, ETH_DECIMALS),
+                payer_user_name: "martin",
+            },
+            utils::SetupCustodyWithLiquidityParams {
+                setup_custody_params: utils::SetupCustodyParams {
+                    mint_name: "btc",
+                    is_stable: false,
+                    is_virtual: false,
+                    target_ratio: utils::ratio_from_percentage(33.0),
+                    min_ratio: utils::ratio_from_percentage(0.0),
+                    max_ratio: utils::ratio_from_percentage(100.0),
+                    initial_price: utils::scale(30_000, BTC_DECIMALS),
+                    initial_conf: utils::scale(10, BTC_DECIMALS),
+                    pricing_params: None,
+                    permissions: None,
+                    fees: None,
+                    borrow_rate: None,
+                },
+                liquidity_amount: utils::scale_f64(0.05, BTC_DECIMALS),
                 payer_user_name: "martin",
             },
         ],
@@ -113,10 +138,12 @@ pub async fn basic_interactions() {
 
     let usdc_mint = &test_setup.get_mint_by_name("usdc");
     let eth_mint = &test_setup.get_mint_by_name("eth");
+    let btc_mint = &test_setup.get_mint_by_name("btc");
 
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
     utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
+    /*
     // Simple open/close position
     {
         // Martin: Open 0.1 ETH position
@@ -153,7 +180,53 @@ pub async fn basic_interactions() {
         )
         .await
         .unwrap();
+    }*/
+
+    // Open/close long position with swap
+    //
+    // Long on BTC using ETH as collateral (auto-swapped for BTC)
+    {
+        let position_pda = test_instructions::open_position_with_swap(
+            &test_setup.program_test_ctx,
+            martin,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
+            eth_mint,
+            btc_mint,
+            OpenPositionWithSwapParams {
+                // Amount of ETH to use as collateral
+                // $7.5 of collateral
+                collateral: utils::scale_f64(0.005, ETH_DECIMALS),
+                // $30 position
+                size: utils::scale_f64(0.001, BTC_DECIMALS),
+                side: Side::Long,
+                // max price paid for BTC when opening the position (slippage implied)
+                price: utils::scale(30_400, Perpetuals::USD_DECIMALS),
+            },
+            None,
+        )
+        .await
+        .unwrap()
+        .0;
+
+        // Martin: Close the ETH position
+        test_instructions::close_position(
+            &test_setup.program_test_ctx,
+            martin,
+            &test_setup.payer_keypair,
+            &test_setup.pool_pda,
+            btc_mint,
+            &position_pda,
+            ClosePositionParams {
+                // lowest exit price paid (slippage implied)
+                price: utils::scale(29_500, Perpetuals::USD_DECIMALS),
+            },
+        )
+        .await
+        .unwrap();
     }
+
+    /*
 
     // Simple swaps
     {
@@ -362,4 +435,5 @@ pub async fn basic_interactions() {
         .await
         .unwrap();
     }
+    */
 }

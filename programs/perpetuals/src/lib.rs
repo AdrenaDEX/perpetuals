@@ -175,6 +175,13 @@ pub mod perpetuals {
         instructions::open_position(ctx, &params)
     }
 
+    pub fn open_position_with_swap(
+        ctx: Context<OpenPositionWithSwap>,
+        params: OpenPositionWithSwapParams,
+    ) -> Result<()> {
+        instructions::open_position_with_swap(ctx, &params)
+    }
+
     pub fn add_collateral(ctx: Context<AddCollateral>, params: AddCollateralParams) -> Result<()> {
         instructions::add_collateral(ctx, &params)
     }
