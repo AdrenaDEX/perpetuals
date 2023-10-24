@@ -6,6 +6,7 @@ use {
     },
     bonfida_test_utils::ProgramTestExt,
     perpetuals::{
+        adapters::spl_governance_program_adapter,
         instructions::{
             AddCustodyParams, AddLiquidityParams, InitStakingParams, SetCustomOraclePriceParams,
         },
@@ -17,7 +18,7 @@ use {
         },
     },
     solana_program::pubkey::Pubkey,
-    solana_program_test::{ProgramTest, ProgramTestContext},
+    solana_program_test::{processor, ProgramTest, ProgramTestContext},
     solana_sdk::{signature::Keypair, signer::Signer},
     std::collections::HashMap,
     tokio::sync::RwLock,
@@ -215,11 +216,25 @@ impl TestSetup {
 
         // Deploy programs
         {
-            utils::add_perpetuals_program(&mut program_test, program_authority_keypair).await;
-            utils::add_spl_governance_program(&mut program_test, program_authority_keypair).await;
-            utils::add_clockwork_network_program(&mut program_test, program_authority_keypair)
-                .await;
-            utils::add_clockwork_thread_program(&mut program_test, program_authority_keypair).await;
+            program_test.add_program("perpetuals", perpetuals::ID, processor!(perpetuals::entry));
+
+            program_test.add_program(
+                "spl_governance",
+                spl_governance_program_adapter::id(),
+                processor!(spl_governance::processor::process_instruction),
+            );
+
+            program_test.add_program(
+                "clockwork_network_program",
+                clockwork_network_program::ID,
+                processor!(clockwork_network_program::entry),
+            );
+
+            program_test.add_program(
+                "clockwork_thread_program",
+                clockwork_thread_program::ID,
+                processor!(clockwork_thread_program::entry),
+            );
         }
 
         // Start the client and connect to localnet validator

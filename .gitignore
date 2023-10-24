@@ -1,7 +1,6 @@
 
 .anchor
 .DS_Store
-target
 **/*.rs.bk
 **/node_modules
 test-ledger
@@ -17,3 +16,10 @@ adrena-keypairs/usdc.json
 
 .pnp.*
 .yarn/
+
+
+# Ignore all in target directory except target/deploy .so files used in rust tests
+target/*
+!target/deploy/
+target/deploy/*
+!target/deploy/*.so

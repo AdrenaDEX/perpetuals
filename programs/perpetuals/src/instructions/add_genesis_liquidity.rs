@@ -74,6 +74,7 @@ pub struct AddGenesisLiquidity<'info> {
     pub cortex: Box<Account<'info, Cortex>>,
 
     #[account(
+        mut,
         seeds = [b"perpetuals"],
         bump = perpetuals.perpetuals_bump
     )]
@@ -295,6 +296,7 @@ pub fn add_genesis_liquidity(
             // assume custodies based on their position in the array because of changing mints
             // enough to run unit tests
             if cfg!(feature = "test") {
+                msg!("TEST");
                 (
                     get_custody_mint_from_account_info(&ctx.remaining_accounts[0]),
                     get_custody_mint_from_account_info(&ctx.remaining_accounts[1]),
@@ -302,6 +304,7 @@ pub fn add_genesis_liquidity(
                     get_custody_mint_from_account_info(&ctx.remaining_accounts[3]),
                 )
             } else {
+                msg!("PROD");
                 // For prod
                 (
                     // Wrapped Bitcoin (Sollet)
@@ -327,6 +330,7 @@ pub fn add_genesis_liquidity(
             && !custody.mint.eq(&usdc)
         {
             // Not handled custody
+            msg!("have you compiled with features test?");
             return Err(PerpetualsError::InvalidCustodyState.into());
         }
 
