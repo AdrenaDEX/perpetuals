@@ -140,7 +140,7 @@ impl TestSetup {
         pol_bucket_allocation: u64,
         ecosystem_bucket_allocation: u64,
     ) -> TestSetup {
-        let mut program_test = ProgramTest::default();
+        let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
 
         // Initialize keypairs
         let keypairs: Vec<Keypair> = utils::create_and_fund_multiple_accounts(
@@ -483,11 +483,8 @@ impl TestSetup {
 
         // Initialize users token accounts for lp token mint
         {
-            let users_pubkeys: Vec<Pubkey> = users
-                .values()
-                .into_iter()
-                .map(|keypair| keypair.pubkey())
-                .collect();
+            let users_pubkeys: Vec<Pubkey> =
+                users.values().map(|keypair| keypair.pubkey()).collect();
 
             utils::initialize_users_token_accounts(
                 &program_test_ctx,

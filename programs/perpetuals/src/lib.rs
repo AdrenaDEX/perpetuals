@@ -129,10 +129,6 @@ pub mod perpetuals {
 
     // test instructions
 
-    pub fn test_init(ctx: Context<TestInit>, params: TestInitParams) -> Result<()> {
-        instructions::test_init(ctx, &params)
-    }
-
     pub fn set_test_time<'info>(
         ctx: Context<'_, '_, '_, 'info, SetTestTime<'info>>,
         params: SetTestTimeParams,
@@ -334,5 +330,14 @@ pub mod perpetuals {
         params: MintLmTokensFromBucketParams,
     ) -> Result<u8> {
         instructions::mint_lm_tokens_from_bucket(ctx, &params)
+    }
+
+    // This instruction must be part of a larger transaction where the **first** instruction
+    // is an ed25519 verification of the serialized oracle price update params.
+    pub fn set_custom_oracle_price_permissionless(
+        ctx: Context<SetCustomOraclePricePermissionless>,
+        params: SetCustomOraclePricePermissionlessParams,
+    ) -> Result<()> {
+        instructions::set_custom_oracle_price_permissionless(ctx, &params)
     }
 }

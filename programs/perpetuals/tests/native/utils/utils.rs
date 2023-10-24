@@ -306,8 +306,8 @@ pub async fn add_spl_governance_program(
     program_test: &mut ProgramTest,
     upgrade_authority: &Keypair,
 ) {
-    let mut program_bytes = read_file(std::env::current_dir().unwrap().join(Path::new(
-        "tests/native/external_programs_binaries/spl_governance_3_1_0.so",
+    let mut program_bytes: Vec<u8> = read_file(std::env::current_dir().unwrap().join(Path::new(
+        "tests/native/external_programs_binaries/spl_governance_2af3b6e4.so",
     )));
 
     let program_data_pda = Pubkey::find_program_address(

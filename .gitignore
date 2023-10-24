@@ -14,3 +14,6 @@ adrena-keypairs/admin.json
 adrena-keypairs/btc.json
 adrena-keypairs/eth.json
 adrena-keypairs/usdc.json
+
+.pnp.*
+.yarn/
