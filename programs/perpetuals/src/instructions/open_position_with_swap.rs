@@ -1,7 +1,10 @@
 //! OpenPositionWithSwap instruction handler
 
 use {
-    super::{open_position::OpenPositionParams, SwapParams},
+    super::{
+        get_entry_price_and_fee, open_position::OpenPositionParams, GetEntryPriceAndFeeParams,
+        SwapParams,
+    },
     crate::{
         error::PerpetualsError,
         instructions::{BucketName, MintLmTokensFromBucketParams},
@@ -155,6 +158,7 @@ pub struct OpenPositionWithSwap<'info> {
     pub cortex: Box<Account<'info, Cortex>>,
 
     #[account(
+        mut,
         seeds = [b"perpetuals"],
         bump = perpetuals.perpetuals_bump
     )]
@@ -368,6 +372,33 @@ pub fn open_position_with_swap(
         params.collateral
     };
 
+    //
+    // Get the fees to be paid on open position so we can provide enough for position + fees
+    // Otherwise the user gonna have to provide collateral, the user probaly don't have as the user swap for it
+    //
+
+    let entry_price_and_fee = perpetuals.internal_get_entry_price_and_fee(
+        perpetuals.to_account_info(),
+        ctx.accounts.pool.to_account_info(),
+        ctx.accounts.principal_custody.to_account_info(),
+        ctx.accounts
+            .principal_custody_oracle_account
+            .to_account_info(),
+        ctx.accounts.collateral_custody.to_account_info(),
+        ctx.accounts
+            .collateral_custody_oracle_account
+            .to_account_info(),
+        ctx.accounts.perpetuals_program.to_account_info(),
+        GetEntryPriceAndFeeParams {
+            collateral: collateral_amount,
+            size: params.size,
+            side: params.side,
+        },
+    )?;
+
+    let collateral_amount_minus_fee =
+        math::checked_sub(collateral_amount, entry_price_and_fee.fee)?;
+
     perpetuals.internal_open_position(
         //TODO have two authority, one is the user, one is the authority beind the funds
         // when called with client, both are the same
@@ -411,11 +442,34 @@ pub fn open_position_with_swap(
         ctx.accounts.perpetuals_program.to_account_info(),
         OpenPositionParams {
             price: params.price,
-            collateral: collateral_amount,
+            collateral: collateral_amount_minus_fee,
             size: params.size,
             side: params.side,
         },
     )?;
+
+    // Reload accounts so they are up to date after what happened in the cpi
+    {
+        ctx.accounts.collateral_account.reload()?;
+        ctx.accounts.lm_token_account.reload()?;
+        ctx.accounts.lm_staking.reload()?;
+        ctx.accounts.lp_staking.reload()?;
+        cortex.reload()?;
+        perpetuals.reload()?;
+        ctx.accounts.pool.reload()?;
+        ctx.accounts.staking_reward_token_custody.reload()?;
+        ctx.accounts
+            .staking_reward_token_custody_token_account
+            .reload()?;
+        ctx.accounts.principal_custody.reload()?;
+        ctx.accounts.collateral_custody.reload()?;
+        ctx.accounts.collateral_custody_token_account.reload()?;
+        ctx.accounts.lm_staking_reward_token_vault.reload()?;
+        ctx.accounts.lp_staking_reward_token_vault.reload()?;
+        ctx.accounts.lm_token_mint.reload()?;
+        ctx.accounts.lp_token_mint.reload()?;
+        ctx.accounts.staking_reward_token_mint.reload()?;
+    }
 
     Ok(())
 }

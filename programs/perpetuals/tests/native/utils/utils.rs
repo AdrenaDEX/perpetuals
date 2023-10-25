@@ -299,7 +299,7 @@ pub async fn create_and_execute_perpetuals_ix<T: InstructionData, U: Signers>(
     let mut instructions: Vec<solana_sdk::instruction::Instruction> = Vec::new();
 
     instructions.push(ComputeBudgetInstruction::set_compute_unit_limit(
-        1_200_000u32,
+        2_000_000u32,
     ));
 
     if pre_ix.is_some() {

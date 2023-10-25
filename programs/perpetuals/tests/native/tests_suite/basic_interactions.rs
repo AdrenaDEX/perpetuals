@@ -143,7 +143,6 @@ pub async fn basic_interactions() {
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
     utils::warp_forward(&test_setup.program_test_ctx, 1).await;
 
-    /*
     // Simple open/close position
     {
         // Martin: Open 0.1 ETH position
@@ -180,7 +179,7 @@ pub async fn basic_interactions() {
         )
         .await
         .unwrap();
-    }*/
+    }
 
     // Open/close long position with swap
     //
@@ -225,8 +224,6 @@ pub async fn basic_interactions() {
         .await
         .unwrap();
     }
-
-    /*
 
     // Simple swaps
     {
@@ -435,5 +432,4 @@ pub async fn basic_interactions() {
         .await
         .unwrap();
     }
-    */
 }

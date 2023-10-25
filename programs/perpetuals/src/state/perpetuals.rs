@@ -7,7 +7,7 @@ use {
     },
     crate::{
         adapters,
-        instructions::{open_position::OpenPositionParams, SwapParams},
+        instructions::{open_position::OpenPositionParams, GetEntryPriceAndFeeParams, SwapParams},
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{Burn, Mint, MintTo, TokenAccount, Transfer},
@@ -545,6 +545,36 @@ impl Perpetuals {
             .with_signer(authority_seeds);
 
         crate::cpi::swap(cpi_context, params)
+    }
+
+    // recursive swap CPI
+    #[allow(clippy::too_many_arguments)]
+    pub fn internal_get_entry_price_and_fee<'a>(
+        &self,
+        perpetuals: AccountInfo<'a>,
+        pool: AccountInfo<'a>,
+        custody: AccountInfo<'a>,
+        custody_oracle_account: AccountInfo<'a>,
+        collateral_custody: AccountInfo<'a>,
+        collateral_custody_oracle_account: AccountInfo<'a>,
+        perpetuals_program: AccountInfo<'a>,
+        params: GetEntryPriceAndFeeParams,
+    ) -> Result<NewPositionPricesAndFee> {
+        let cpi_accounts = crate::cpi::accounts::GetEntryPriceAndFee {
+            perpetuals,
+            pool,
+            custody,
+            custody_oracle_account,
+            collateral_custody,
+            collateral_custody_oracle_account,
+        };
+
+        let cpi_program = perpetuals_program;
+
+        let cpi_context = anchor_lang::context::CpiContext::new(cpi_program, cpi_accounts);
+
+        let ret = crate::cpi::get_entry_price_and_fee(cpi_context, params)?;
+        Ok(ret.get())
     }
 
     // recursive swap CPI

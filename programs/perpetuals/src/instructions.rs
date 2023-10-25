@@ -67,6 +67,6 @@ pub use {
     remove_liquidity::*, remove_locked_stake::*, remove_pool::*, resolve_staking_round::*,
     set_admin_signers::*, set_custody_config::*, set_custom_oracle_price::*,
     set_custom_oracle_price_permissionless::*, set_permissions::*, set_test_time::*, swap::*,
-    test_admin_remove_collateral::*, test_init::*, update_pool_aum::*, upgrade_custody::*,
-    withdraw_fees::*, withdraw_sol_fees::*,
+    test_admin_remove_collateral::*, update_pool_aum::*, upgrade_custody::*, withdraw_fees::*,
+    withdraw_sol_fees::*,
 };
