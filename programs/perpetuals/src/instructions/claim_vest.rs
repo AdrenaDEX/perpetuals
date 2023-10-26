@@ -158,10 +158,16 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
         vest.last_claim_timestamp = current_time;
     }
 
+    let cortex = ctx.accounts.cortex.as_mut();
+
+    // cortex accounting
+    {
+        cortex.vested_token_amount =
+            math::checked_sub(cortex.vested_token_amount, claimable_amount.into())?;
+    }
+
     // If everything have been claimed, remove vesting from the cortex list
     if vest.claimed_amount == vest.amount {
-        let cortex = ctx.accounts.cortex.as_mut();
-
         let vest_idx = cortex
             .vests
             .iter()

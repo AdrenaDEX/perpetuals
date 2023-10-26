@@ -54,6 +54,8 @@ pub async fn add_vest(
         utils::get_token_account_balance(program_test_ctx, governance_governing_token_holding_pda)
             .await;
 
+    let cortex_account_before = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
+
     // One Tx per multisig signer
     for i in 0..multisig_account.min_signatures {
         let signer: &Keypair = multisig_signers[i as usize];
@@ -133,9 +135,14 @@ pub async fn add_vest(
 
     // Check cortex account
     {
-        let cortex_account = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
+        let cortex_account_after = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
 
-        assert_eq!(*cortex_account.vests.last().unwrap(), vest_pda);
+        assert_eq!(*cortex_account_after.vests.last().unwrap(), vest_pda);
+
+        assert_eq!(
+            cortex_account_before.vested_token_amount + params.amount as u128,
+            cortex_account_after.vested_token_amount
+        );
     }
 
     // Check governance accounts
