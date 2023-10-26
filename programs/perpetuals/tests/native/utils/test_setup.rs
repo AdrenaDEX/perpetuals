@@ -6,6 +6,7 @@ use {
     },
     bonfida_test_utils::ProgramTestExt,
     perpetuals::{
+        adapters::spl_governance_program_adapter,
         instructions::{
             AddCustodyParams, AddLiquidityParams, InitStakingParams, SetCustomOraclePriceParams,
         },
@@ -17,7 +18,7 @@ use {
         },
     },
     solana_program::pubkey::Pubkey,
-    solana_program_test::{ProgramTest, ProgramTestContext},
+    solana_program_test::{processor, ProgramTest, ProgramTestContext},
     solana_sdk::{signature::Keypair, signer::Signer},
     std::collections::HashMap,
     tokio::sync::RwLock,
@@ -140,7 +141,7 @@ impl TestSetup {
         pol_bucket_allocation: u64,
         ecosystem_bucket_allocation: u64,
     ) -> TestSetup {
-        let mut program_test = ProgramTest::default();
+        let mut program_test = ProgramTest::new("perpetuals", perpetuals::id(), None);
 
         // Initialize keypairs
         let keypairs: Vec<Keypair> = utils::create_and_fund_multiple_accounts(
@@ -215,11 +216,25 @@ impl TestSetup {
 
         // Deploy programs
         {
-            utils::add_perpetuals_program(&mut program_test, program_authority_keypair).await;
-            utils::add_spl_governance_program(&mut program_test, program_authority_keypair).await;
-            utils::add_clockwork_network_program(&mut program_test, program_authority_keypair)
-                .await;
-            utils::add_clockwork_thread_program(&mut program_test, program_authority_keypair).await;
+            program_test.add_program("perpetuals", perpetuals::ID, processor!(perpetuals::entry));
+
+            program_test.add_program(
+                "spl_governance",
+                spl_governance_program_adapter::id(),
+                processor!(spl_governance::processor::process_instruction),
+            );
+
+            program_test.add_program(
+                "clockwork_network_program",
+                clockwork_network_program::ID,
+                processor!(clockwork_network_program::entry),
+            );
+
+            program_test.add_program(
+                "clockwork_thread_program",
+                clockwork_thread_program::ID,
+                processor!(clockwork_thread_program::entry),
+            );
         }
 
         // Start the client and connect to localnet validator
@@ -483,11 +498,8 @@ impl TestSetup {
 
         // Initialize users token accounts for lp token mint
         {
-            let users_pubkeys: Vec<Pubkey> = users
-                .values()
-                .into_iter()
-                .map(|keypair| keypair.pubkey())
-                .collect();
+            let users_pubkeys: Vec<Pubkey> =
+                users.values().map(|keypair| keypair.pubkey()).collect();
 
             utils::initialize_users_token_accounts(
                 &program_test_ctx,

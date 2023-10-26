@@ -58,9 +58,9 @@ pub struct GetEntryPriceAndFee<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct GetEntryPriceAndFeeParams {
-    collateral: u64,
-    size: u64,
-    side: Side,
+    pub collateral: u64,
+    pub size: u64,
+    pub side: Side,
 }
 
 pub fn get_entry_price_and_fee(

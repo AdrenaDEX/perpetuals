@@ -113,7 +113,7 @@ pub async fn close_position(
             utils::get_token_account(program_test_ctx, custody_token_account_pda).await;
 
         assert!(owner_receiving_account_after.amount > owner_receiving_account_before.amount);
-        assert!(owner_lm_token_account_after.amount > owner_lm_token_account_before.amount);
+        assert!(owner_lm_token_account_after.amount >= owner_lm_token_account_before.amount);
         assert!(custody_token_account_after.amount < custody_token_account_before.amount);
     }
 

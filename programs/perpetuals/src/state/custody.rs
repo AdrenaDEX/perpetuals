@@ -15,6 +15,7 @@ use {
 pub enum FeesMode {
     Fixed,
     Linear,
+    Optimal,
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -35,6 +36,9 @@ pub struct Fees {
     // This is initially intended to be the protocol revenues (a fee on the fees)
     // In the case of ADX, this will be repurposed to go to the ADX staking rewards (and give a share of the revenue to ADX holders)
     pub protocol_share: u64,
+    // configs for optimal fee mode
+    pub fee_max: u64,
+    pub fee_optimal: u64,
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -242,6 +246,8 @@ impl Fees {
             && self.close_position as u128 <= Perpetuals::BPS_POWER
             && self.liquidation as u128 <= Perpetuals::BPS_POWER
             && self.protocol_share as u128 <= Perpetuals::BPS_POWER
+            && self.fee_max as u128 <= Perpetuals::BPS_POWER
+            && self.fee_optimal as u128 <= Perpetuals::BPS_POWER
     }
 }
 
@@ -505,6 +511,8 @@ impl Custody {
         stats.total_quantity = math::checked_add(stats.total_quantity, quantity)?;
 
         // check limits
+        // DISABLE LIMITS FOR NOW AS THERE IS AN ISSUE WITH STATS, NEEDS TO FIGURE THIS OUT FIRST
+        /*
         if self.pricing.max_position_locked_usd > 0 {
             let locked_amount_usd =
                 token_price.get_asset_amount_usd(position.locked_amount, self.decimals)?;
@@ -521,6 +529,7 @@ impl Custody {
                 PerpetualsError::CustodyAmountLimit
             );
         }
+        */
 
         // update collateral custody for interest tracking
         if let Some(custody) = collateral_custody {

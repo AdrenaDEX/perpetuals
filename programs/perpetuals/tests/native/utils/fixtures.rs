@@ -49,6 +49,8 @@ pub fn fees_linear_regular() -> Fees {
         close_position: 100,
         liquidation: 50,
         protocol_share: 25,
+        fee_max: 0,
+        fee_optimal: 0,
     }
 }
 
@@ -73,6 +75,7 @@ pub fn oracle_params_regular(oracle_account: Pubkey) -> OracleParams {
     OracleParams {
         oracle_account,
         oracle_type: OracleType::Custom,
+        oracle_authority: Pubkey::default(),
         max_price_error: 1_000_000,
         // Price never go stale in tests
         max_price_age_sec: u32::MAX,

@@ -38,13 +38,7 @@ anchor build
 
 ### Test
 
-Unit tests are executed with the `cargo test` command:
-
-```sh
-cargo test -- --nocapture
-```
-
-Integration tests (Rust) can be started as follows:
+Integration and unit tests (Rust) can be started as follows:
 
 ```sh
 anchor build && RUST_BACKTRACE=1 cargo test -v -- --nocapture
