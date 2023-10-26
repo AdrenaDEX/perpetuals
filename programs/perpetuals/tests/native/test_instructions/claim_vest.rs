@@ -50,6 +50,8 @@ pub async fn claim_vest(
         utils::get_token_account_balance(program_test_ctx, governance_governing_token_holding_pda)
             .await;
 
+    let cortex_account_before = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
+
     utils::create_and_execute_perpetuals_ix(
         program_test_ctx,
         perpetuals::accounts::ClaimVest {
@@ -93,20 +95,28 @@ pub async fn claim_vest(
             owner_lm_token_account_after.amount,
             owner_lm_token_account_before.amount
                 + (vest_account_after.claimed_amount - vest_account_before.claimed_amount)
-        )
+        );
     }
+
+    let cortex_account_after = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
 
     // If everything have been claimed, verify that the vest pda has been plucked out of the Cortex vests vector
     if vest_account_after.amount == vest_account_after.claimed_amount {
-        {
-            let cortex_account = utils::get_account::<Cortex>(program_test_ctx, cortex_pda).await;
-
-            assert_eq!(
-                cortex_account.vests.iter().find(|v| { **v == vest_pda }),
-                None
-            );
-        }
+        assert_eq!(
+            cortex_account_after
+                .vests
+                .iter()
+                .find(|v| { **v == vest_pda }),
+            None
+        );
     }
+
+    let total_claim = vest_account_after.claimed_amount - vest_account_before.claimed_amount;
+
+    assert_eq!(
+        cortex_account_before.vested_token_amount - total_claim as u128,
+        cortex_account_after.vested_token_amount
+    );
 
     // The governance power should be reduced
     {

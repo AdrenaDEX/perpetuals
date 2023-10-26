@@ -32,6 +32,7 @@ pub struct Cortex {
     // Vesting
     //
     pub vests: Vec<Pubkey>,
+    pub vested_token_amount: u128,
     //
     // Lm tokens minting rules
     //

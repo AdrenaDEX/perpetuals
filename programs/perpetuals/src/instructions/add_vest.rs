@@ -4,6 +4,7 @@ use {
     crate::{
         adapters::{self, CreateTokenOwnerRecord, SplGovernanceV3Adapter},
         error::PerpetualsError,
+        math,
         state::{
             cortex::Cortex,
             multisig::{AdminInstruction, Multisig},
@@ -197,6 +198,10 @@ pub fn add_vest<'info>(
         let cortex = ctx.accounts.cortex.as_mut();
 
         cortex.vests.push(ctx.accounts.vest.key());
+
+        // stats
+        cortex.vested_token_amount =
+            math::checked_add(cortex.vested_token_amount, params.amount.into())?;
     }
 
     // Give 1:1 governing power to the Vest owner (signed by the mint)

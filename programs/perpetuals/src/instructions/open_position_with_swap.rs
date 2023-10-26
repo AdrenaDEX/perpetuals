@@ -1,22 +1,11 @@
 //! OpenPositionWithSwap instruction handler
 
 use {
-    super::{
-        get_entry_price_and_fee, open_position::OpenPositionParams, GetEntryPriceAndFeeParams,
-        SwapParams,
-    },
+    super::{open_position::OpenPositionParams, GetEntryPriceAndFeeParams, SwapParams},
     crate::{
-        error::PerpetualsError,
-        instructions::{BucketName, MintLmTokensFromBucketParams},
         math::{self, checked_sub},
-        perpetuals,
         state::{
-            cortex::Cortex,
-            custody::Custody,
-            oracle::OraclePrice,
-            perpetuals::Perpetuals,
-            pool::Pool,
-            position::{Position, Side},
+            cortex::Cortex, custody::Custody, perpetuals::Perpetuals, pool::Pool, position::Side,
             staking::Staking,
         },
     },
@@ -277,18 +266,6 @@ pub fn open_position_with_swap(
         .key()
         .ne(&ctx.accounts.collateral_custody.key());
 
-    // transfer tokens
-    /*msg!("Transfer tokens");
-    perpetuals.transfer_tokens_from_user(
-        ctx.accounts.funding_account.to_account_info(),
-        ctx.accounts
-            .receiving_custody_token_account
-            .to_account_info(),
-        ctx.accounts.owner.to_account_info(),
-        ctx.accounts.token_program.to_account_info(),
-        params.collateral,
-    )?;*/
-
     let collateral_amount = if swap_required {
         let collateral_amount_before = ctx.accounts.collateral_account.amount;
 
@@ -400,9 +377,6 @@ pub fn open_position_with_swap(
         math::checked_sub(collateral_amount, entry_price_and_fee.fee)?;
 
     perpetuals.internal_open_position(
-        //TODO have two authority, one is the user, one is the authority beind the funds
-        // when called with client, both are the same
-        // when called in CPI, user is the user and authority is the transfer_authority
         ctx.accounts.owner.to_account_info(),
         ctx.accounts.transfer_authority.to_account_info(),
         ctx.accounts.payer.to_account_info(),
