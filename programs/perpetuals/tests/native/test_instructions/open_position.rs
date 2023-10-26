@@ -70,6 +70,7 @@ pub async fn open_position(
         program_test_ctx,
         perpetuals::accounts::OpenPosition {
             owner: owner.pubkey(),
+            payer: payer.pubkey(),
             funding_account: funding_account_address,
             lm_token_account: lm_token_account_address,
             transfer_authority: transfer_authority_pda,

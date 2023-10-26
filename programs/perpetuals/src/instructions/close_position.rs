@@ -69,6 +69,7 @@ pub struct ClosePosition<'info> {
     pub cortex: Box<Account<'info, Cortex>>,
 
     #[account(
+        mut,
         seeds = [b"perpetuals"],
         bump = perpetuals.perpetuals_bump
     )]

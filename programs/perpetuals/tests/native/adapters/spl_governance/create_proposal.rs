@@ -3,7 +3,7 @@ use {
     perpetuals::adapters::spl_governance_program_adapter,
     solana_program_test::{BanksClientError, ProgramTestContext},
     solana_sdk::signer::{keypair::Keypair, Signer},
-    spl_governance::state::proposal::VoteType,
+    spl_governance::{instruction::AddSignatoryAuthority, state::proposal::VoteType},
     tokio::sync::RwLock,
 };
 
@@ -58,7 +58,7 @@ pub async fn create_proposal(
         &spl_governance_program_adapter::id(),
         &proposal_pda,
         &proposal_owner_record,
-        &governance_authority.pubkey(),
+        &AddSignatoryAuthority::None,
         &payer.pubkey(),
         &governance_authority.pubkey(),
     );
