@@ -6,8 +6,9 @@ use {
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            AddLiquidStakeParams, AddVestParams, ClosePositionParams, OpenPositionParams,
-            OpenPositionWithSwapParams, RemoveLiquidStakeParams, RemoveLiquidityParams, SwapParams,
+            AddLiquidStakeParams, AddVestParams, ClosePositionParams, IncreasePositionParams,
+            OpenPositionParams, OpenPositionWithSwapParams, RemoveLiquidStakeParams,
+            RemoveLiquidityParams, SwapParams,
         },
         state::{cortex::Cortex, perpetuals::Perpetuals, position::Side, staking::StakingRound},
     },
@@ -165,13 +166,13 @@ pub async fn basic_interactions() {
         .0;
 
         // Martin: Increase 0.1 ETH position
-        let position_pda = test_instructions::open_position(
+        let position_pda = test_instructions::increase_position(
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
             &test_setup.pool_pda,
             eth_mint,
-            OpenPositionParams {
+            IncreasePositionParams {
                 // max price paid (slippage implied)
                 price: utils::scale(1_550, USDC_DECIMALS),
                 collateral: utils::scale_f64(0.1, ETH_DECIMALS),
@@ -314,7 +315,7 @@ pub async fn basic_interactions() {
                 utils::get_token_account_balance(&test_setup.program_test_ctx, paul_usdc_ata).await;
 
             assert_eq!(eth_balance_before - eth_balance_after, 100_000_000);
-            assert_eq!(usdc_balance_after - usdc_balance_before, 144_074_100);
+            assert_eq!(usdc_balance_after - usdc_balance_before, 144_059_550);
         }
     }
 
