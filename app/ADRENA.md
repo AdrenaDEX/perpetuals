@@ -12,19 +12,21 @@ usdc: 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC
 eth: 3AHAG1ZSUnPz43XBFKRqnLwhdyz29WhHvYQgVrcheCwr
 btc: HRvpfs8bKiUbLzSgT4LmKKugafZ8ePi5Vq7icJBC9dnM
 
-program: CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia
+program: 58ojsgyE8iwRA1EGjDpNS4DkAfxo1bkP95EYrjtLgSZK
 
 governance program: GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw
-
-governance realm: 65M6EkpcQ5bXfJBhkmgNT3gUTB2YtW5tmBbsDEP6Gfcj
-
 pool name: main-pool
-pool: B9HJCFyrzVStCNHnAkXRMG1wDk8XS9eyKuitmvxjn2Hf
-lp token mint: EqkG2sZrCw3dApo4LmeHvhAAEo7MwwjZNU2wxK5D6gbb
 
 Orex local wallet: CqJVUVbxJae8GfYsSooA5qzjHmoZusB1Hni7Ed1eEDeH
 
 liquidator: 2TV88CD47FWnVrr7dkR1aQGVNrdA1uVJKUk7E9umYeEx
+
+governance realm name: AdrenaDevnet
+governance realm: AobUu958gW92wxm4JL6ebsESVM62PKto3QJFFRPJuZqd
+pool: J2rFuu4dG5BWpx5x3TwhXAUVENXdfjN4wz2LhrqQkxFe
+lp token mint: BbN8CR3S1UBTqnbjBta2sgi5DxEsZqCK8XdNChTQ8cn4
+governance token mint: D7puvaVWN3grq2C659WSE4XUnx3C95W3dmbykwvM65fp
+faucet devnet bank: FL4KKyvANrRFsm8kRRCoUW9QJY5LixttpdFxEBEm7ufW
 
 ## Upload program
 
@@ -42,7 +44,7 @@ anchor idl init --filepath <PATH_TO_IDL> --provider.cluster <CLUSTER> <PROGRAM_I
 i.e
 
 ```
-anchor idl init --filepath ./target/idl/perpetuals.json --provider.cluster devnet CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia
+anchor idl init --filepath ./target/idl/perpetuals.json --provider.cluster devnet 58ojsgyE8iwRA1EGjDpNS4DkAfxo1bkP95EYrjtLgSZK
 ```
 
 #### nth time
@@ -54,43 +56,43 @@ anchor idl upgrade --filepath <PATH_TO_IDL> --provider.cluster <CLUSTER> <PROGRA
 i.e
 
 ```
-anchor idl upgrade --filepath ./target/idl/perpetuals.json --provider.cluster devnet CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia
+anchor idl upgrade --filepath ./target/idl/perpetuals.json --provider.cluster devnet 58ojsgyE8iwRA1EGjDpNS4DkAfxo1bkP95EYrjtLgSZK
 ```
 
 ### Give program authority to admin (to be able to init)
 
 ```
-solana program set-upgrade-authority <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY>
+solana program set-upgrade-authority --skip-new-upgrade-authority-signer-check <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY>
 ```
 
 i.e
 
 ```
-solana program set-upgrade-authority CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia --new-upgrade-authority 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
+solana program set-upgrade-authority --skip-new-upgrade-authority-signer-check 58ojsgyE8iwRA1EGjDpNS4DkAfxo1bkP95EYrjtLgSZK --new-upgrade-authority 5vAooJKJxWXVPNb13dBq1jPsuE3RTbMCfYuounMJcAvb
 ```
 
 ### Give program authority back to local wallet to redeploy
 
 ```
-solana program set-upgrade-authority <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY> -k <CURRENT_AUTHORITY_KEYPAIR>
+solana program set-upgrade-authority --skip-new-upgrade-authority-signer-check <PROGRAM_ADDRESS> --new-upgrade-authority <NEW_UPGRADE_AUTHORITY> -k <CURRENT_AUTHORITY_KEYPAIR>
 ```
 
 i.e
 
 ```
-solana program set-upgrade-authority CfbwNZaAL4izRqLsnxixx76uQy9GE6PBy917i57jVbia --new-upgrade-authority CqJVUVbxJae8GfYsSooA5qzjHmoZusB1Hni7Ed1eEDeH -k ~/adrena-keypairs/admin.json
+solana program set-upgrade-authority --skip-new-upgrade-authority-signer-check 58ojsgyE8iwRA1EGjDpNS4DkAfxo1bkP95EYrjtLgSZK --new-upgrade-authority CqJVUVbxJae8GfYsSooA5qzjHmoZusB1Hni7Ed1eEDeH -k ~/adrena-keypairs/admin.json
 ```
 
 ## Get governance realm key
 
 ```
-npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-governance-realm-key --name <REALM_NAME>
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-dao-realm-key --name <REALM_NAME>
 ```
 
 i.e
 
 ```
-npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-governance-realm-key --name AdrenaTest
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-dao-realm-key --name AdrenaDevnet
 ```
 
 ## Setup the Cortex
@@ -113,7 +115,7 @@ i.e
 npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json init \
  --min-signatures 1 \
  --lm-staking-reward-token-mint 4ZY3ZH8bStniqdCZdR14xsWW6vrMsCJrusobTdy4JipC \
- --governance-realm 65M6EkpcQ5bXfJBhkmgNT3gUTB2YtW5tmBbsDEP6Gfcj \
+ --governance-realm AobUu958gW92wxm4JL6ebsESVM62PKto3QJFFRPJuZqd \
  --core-contributor-bucket-allocation 100000 \
  --dao-treasury-bucket-allocation 100000 \
  --pol-bucket-allocation 100000 \
@@ -124,7 +126,7 @@ npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json init \
 ## Create the governance realm
 
 ```
-npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> create-governance-realm \
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> create-dao-realm \
 --name <REALM_NAME> \
 --min-community-weight-to-create-governance <WEIGHT>
 ```
@@ -132,8 +134,8 @@ npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> create-governance-realm \
 i.e
 
 ```
-npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json create-governance-realm \
---name AdrenaTest \
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json create-dao-realm \
+--name AdrenaDevnet \
 --min-community-weight-to-create-governance 10000
 ```
 
@@ -260,13 +262,13 @@ npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-liquidity main-po
 ## Get custodies
 
 ```
-npx ts-node src/cli.ts -k <ADMIN_KEYPAIR> get-custodies <POOL_NAME>
+npx ts-node app/src/cli.ts -k <ADMIN_KEYPAIR> get-custodies <POOL_NAME>
 ```
 
 i.e
 
 ```
-npx ts-node src/cli.ts -k ~/adrena-keypairs/admin.json get-custodies main-pool
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json get-custodies main-pool
 ```
 
 ## Add vest
@@ -280,7 +282,17 @@ Can use the following website to find timestamp: https://www.unixtimestamp.com/
 i.e
 
 ```
-npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-vest --beneficiary-wallet 6hqz24NfaMwEvUna95p7haPqrh2urVwyVo1gLHEqUVXY --amount 10000 --unlock-start-timestamp 1694073600 --unlock-end-timestamp 1788768000
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/admin.json add-vest --beneficiary-wallet AQGXYGyu5zCU3e1MLegTEW32bXRNfdcqQiYwEUQub1gA --amount 10000 --unlock-start-timestamp 1694073600 --unlock-end-timestamp 1788768000
+```
+
+## Claim vest
+
+```
+npx ts-node app/src/cli.ts -k <VEST_WALLET_KEYPAIR> claim-vest
+```
+
+```
+npx ts-node app/src/cli.ts -k ~/adrena-keypairs/orex-work.json claim-vest
 ```
 
 ## Admin remove collateral from user position

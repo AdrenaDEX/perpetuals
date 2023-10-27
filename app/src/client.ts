@@ -869,6 +869,53 @@ export class PerpetualsClient {
       });
   };
 
+  setCustodiesRatio = async (
+    poolName: string,
+
+    // number of ratios must match in order the custodies of the pool and be 100% total
+    ratios: {
+      target: BN;
+      min: BN;
+      max: BN;
+    }[]
+  ): Promise<string> => {
+    const poolKey = this.getPoolKey(poolName);
+
+    const poolAccount = await this.program.account.pool.fetch(poolKey);
+
+    if (!poolAccount.custodies.length) {
+      throw new Error("No custodies");
+    }
+
+    const custodyKey = poolAccount.custodies[0];
+
+    const custodyAccount = await this.program.account.custody.fetch(custodyKey);
+
+    return this.program.methods
+      .setCustodyConfig({
+        isStable: custodyAccount.isStable,
+        isVirtual: custodyAccount.isVirtual,
+        oracle: custodyAccount.oracle,
+        pricing: custodyAccount.pricing,
+        permissions: custodyAccount.permissions,
+        fees: custodyAccount.fees,
+        borrowRate: custodyAccount.borrowRate,
+        ratios,
+      })
+      .accounts({
+        admin: this.admin.publicKey,
+        multisig: this.multisig.publicKey,
+        pool: poolKey,
+        custody: custodyKey,
+      })
+      .signers([this.admin])
+      .rpc()
+      .catch((err) => {
+        console.error(err);
+        throw err;
+      });
+  };
+
   addCustody = async (
     poolName: string,
     tokenMint: PublicKey,

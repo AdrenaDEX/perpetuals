@@ -124,12 +124,13 @@ async function addCustody(
 ): Promise<void> {
   // to be loaded from config file
   const oracleConfig: OracleParams = {
-    maxPriceError: new BN(10_000),
+    maxPriceError: new BN(10000),
     maxPriceAgeSec: 60,
     oracleType: {
       [oracleType]: {},
     },
     oracleAccount: tokenOracle,
+    oracleAuthority: client.authority.publicKey,
   };
 
   const pricingConfig: PricingParams = {
@@ -138,11 +139,11 @@ async function addCustody(
     tradeSpreadLong: new BN(100),
     tradeSpreadShort: new BN(100),
     swapSpread: new BN(200),
-    minInitialLeverage: new BN(10_000),
-    maxInitialLeverage: new BN(1_000_000),
-    maxLeverage: new BN(1_000_000),
-    maxPayoffMult: new BN(10_000),
-    maxUtilization: new BN(10_000),
+    minInitialLeverage: new BN(10_000), // x1
+    maxInitialLeverage: new BN(500_000), // x50
+    maxLeverage: new BN(500_000), // x50
+    maxPayoffMult: new BN(10_000), // 100%
+    maxUtilization: new BN(10_000), // 100%
     maxPositionLockedUsd: new BN(0),
     maxTotalLockedUsd: new BN(0),
   };
@@ -182,9 +183,9 @@ async function addCustody(
 
   const pool = await client.getPool(poolName);
   pool.ratios.push({
-    target: new BN(5_000),
-    min: new BN(10),
-    max: new BN(10_000),
+    target: new BN(5_000), // 50%
+    min: new BN(10), // 0.1%
+    max: new BN(10_000), // 100%
   });
 
   const ratios = client.adjustTokenRatios(pool.ratios);
@@ -482,8 +483,17 @@ async function addVest(
   console.log(`Transaction succeeded: ${txId}`);
 }
 
-async function createDaoGovernance() {
-  // TODO
+async function setCustodiesRatio(
+  poolName: string,
+  ratios: {
+    target: BN;
+    min: BN;
+    max: BN;
+  }[]
+) {
+  const txId = client.setCustodiesRatio(poolName, ratios);
+
+  console.log(`Transaction succeeded: ${txId}`);
 }
 
 async function testAdminRemoveCollateralFromUserPosition(
@@ -1051,6 +1061,37 @@ async function testAdminRemoveCollateralFromUserPosition(
     .argument("<string>", "Pool name")
     .action(async (poolName) => {
       await getAum(poolName);
+    });
+
+  program
+    .command("set-custodies-ratios")
+    .description(
+      "Change custody ratios. Specify ratios for all custodies of the pool. Ratios in BPS, 10000 = 100%, 50 = 0.5%"
+    )
+    .argument("<string>", "Pool name")
+    .argument("<numbers...>", "Custody Ratio (target min max)")
+    .action(async (poolName, rawRatios) => {
+      console.log("poolName", poolName);
+
+      const ratios = [];
+
+      if (rawRatios.length === 0) {
+        throw new Error("Ratios cannot be empty");
+      }
+
+      if (rawRatios.length % 3 !== 0) {
+        throw new Error("Missing ratio");
+      }
+
+      for (let i = 0; i < rawRatios.length; i += 3) {
+        ratios.push({
+          target: rawRatios[i],
+          min: new BN(rawRatios[i + 1]),
+          max: rawRatios[i + 2],
+        });
+      }
+
+      setCustodiesRatio(poolName, ratios);
     });
 
   await program.parseAsync(process.argv);
