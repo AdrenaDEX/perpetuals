@@ -57,7 +57,7 @@ pub struct GetSwapAmountAndFees<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct GetSwapAmountAndFeesParams {
-    amount_in: u64,
+    pub amount_in: u64,
 }
 
 pub fn get_swap_amount_and_fees(

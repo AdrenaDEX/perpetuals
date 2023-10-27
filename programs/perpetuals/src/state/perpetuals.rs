@@ -7,7 +7,11 @@ use {
     },
     crate::{
         adapters,
-        instructions::{open_position::OpenPositionParams, GetEntryPriceAndFeeParams, SwapParams},
+        instruction::GetSwapAmountAndFees,
+        instructions::{
+            get_swap_amount_and_fees::GetSwapAmountAndFeesParams,
+            open_position::OpenPositionParams, GetEntryPriceAndFeeParams, SwapParams,
+        },
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{Burn, Mint, MintTo, TokenAccount, Transfer},
@@ -34,6 +38,15 @@ pub struct NewPositionPricesAndFee {
     pub entry_price: u64,
     pub liquidation_price: u64,
     pub fee: u64,
+}
+
+#[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
+pub struct OpenPositionWithSwapAmountAndFees {
+    pub entry_price: u64,
+    pub liquidation_price: u64,
+    pub swap_fee_in: u64,
+    pub swap_fee_out: u64,
+    pub open_position_fee: u64,
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -547,7 +560,7 @@ impl Perpetuals {
         crate::cpi::swap(cpi_context, params)
     }
 
-    // recursive swap CPI
+    // recursive CPI
     #[allow(clippy::too_many_arguments)]
     pub fn internal_get_entry_price_and_fee<'a>(
         &self,
@@ -574,6 +587,36 @@ impl Perpetuals {
         let cpi_context = anchor_lang::context::CpiContext::new(cpi_program, cpi_accounts);
 
         let ret = crate::cpi::get_entry_price_and_fee(cpi_context, params)?;
+        Ok(ret.get())
+    }
+
+    // recursive CPI
+    #[allow(clippy::too_many_arguments)]
+    pub fn internal_get_swap_amount_and_fee<'a>(
+        &self,
+        perpetuals: AccountInfo<'a>,
+        pool: AccountInfo<'a>,
+        receiving_custody: AccountInfo<'a>,
+        receiving_custody_oracle_account: AccountInfo<'a>,
+        dispensing_custody: AccountInfo<'a>,
+        dispensing_custody_oracle_account: AccountInfo<'a>,
+        perpetuals_program: AccountInfo<'a>,
+        params: GetSwapAmountAndFeesParams,
+    ) -> Result<SwapAmountAndFees> {
+        let cpi_accounts = crate::cpi::accounts::GetSwapAmountAndFees {
+            perpetuals,
+            pool,
+            receiving_custody,
+            receiving_custody_oracle_account,
+            dispensing_custody,
+            dispensing_custody_oracle_account,
+        };
+
+        let cpi_program = perpetuals_program;
+
+        let cpi_context = anchor_lang::context::CpiContext::new(cpi_program, cpi_accounts);
+
+        let ret = crate::cpi::get_swap_amount_and_fees(cpi_context, params)?;
         Ok(ret.get())
     }
 

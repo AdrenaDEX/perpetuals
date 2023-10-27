@@ -12,7 +12,8 @@ use {
     anchor_lang::prelude::*,
     instructions::*,
     state::perpetuals::{
-        AmountAndFee, NewPositionPricesAndFee, PriceAndFee, ProfitAndLoss, SwapAmountAndFees,
+        AmountAndFee, NewPositionPricesAndFee, OpenPositionWithSwapAmountAndFees, PriceAndFee,
+        ProfitAndLoss, SwapAmountAndFees,
     },
 };
 
@@ -220,6 +221,13 @@ pub mod perpetuals {
         params: GetEntryPriceAndFeeParams,
     ) -> Result<NewPositionPricesAndFee> {
         instructions::get_entry_price_and_fee(ctx, &params)
+    }
+
+    pub fn get_open_position_with_swap_amount_and_fees(
+        ctx: Context<GetOpenPositionWithSwapAmountAndFees>,
+        params: GetOpenPositionWithSwapAmountAndFeesParams,
+    ) -> Result<OpenPositionWithSwapAmountAndFees> {
+        instructions::get_open_position_with_swap_amount_and_fees(ctx, &params)
     }
 
     pub fn get_exit_price_and_fee(
