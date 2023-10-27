@@ -38,6 +38,7 @@ pub mod get_oracle_price;
 pub mod get_pnl;
 pub mod get_remove_liquidity_amount_and_fee;
 pub mod get_swap_amount_and_fees;
+pub mod increase_position;
 pub mod init_staking;
 pub mod init_user_staking;
 pub mod liquidate;
@@ -61,7 +62,7 @@ pub use {
     get_add_liquidity_amount_and_fee::*, get_assets_under_management::*,
     get_entry_price_and_fee::*, get_exit_price_and_fee::*, get_liquidation_price::*,
     get_liquidation_state::*, get_lp_token_price::*, get_oracle_price::*, get_pnl::*,
-    get_remove_liquidity_amount_and_fee::*, get_swap_amount_and_fees::*, init::*, init_staking::*,
+    get_remove_liquidity_amount_and_fee::*, get_swap_amount_and_fees::*, increase_position::*, init::*, init_staking::*,
     init_user_staking::*, liquidate::*, mint_lm_tokens_from_bucket::*, open_position::*,
     open_position_with_swap::*, remove_collateral::*, remove_custody::*, remove_liquid_stake::*,
     remove_liquidity::*, remove_locked_stake::*, remove_pool::*, resolve_staking_round::*,

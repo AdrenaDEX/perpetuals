@@ -171,6 +171,13 @@ pub mod perpetuals {
         instructions::open_position(ctx, &params)
     }
 
+    pub fn increase_position(
+        ctx: Context<IncreasePosition>,
+        params: IncreasePositionParams,
+    ) -> Result<()> {
+        instructions::increase_position(ctx, &params)
+    }
+
     pub fn open_position_with_swap(
         ctx: Context<OpenPositionWithSwap>,
         params: OpenPositionWithSwapParams,
