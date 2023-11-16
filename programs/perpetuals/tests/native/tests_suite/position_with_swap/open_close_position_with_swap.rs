@@ -5,7 +5,10 @@ use {
     },
     maplit::hashmap,
     perpetuals::{
-        instructions::{ClosePositionParams, OpenPositionWithSwapParams},
+        instructions::{
+            ClosePositionParams, GetOpenPositionWithSwapAmountAndFeesParams,
+            OpenPositionWithSwapParams,
+        },
         state::{cortex::Cortex, perpetuals::Perpetuals, position::Side},
     },
     solana_sdk::signer::Signer,
@@ -134,6 +137,47 @@ pub async fn open_close_position_with_swap() {
         get_token_account_balance(&test_setup.program_test_ctx, martin_eth_ata).await;
     let mut martin_btc_balance_before =
         get_token_account_balance(&test_setup.program_test_ctx, martin_btc_ata).await;
+
+    // Check preshot of what's happening
+    {
+        let open_position_with_swap_amount_and_fees =
+            test_instructions::get_open_position_with_swap_amount_and_fees(
+                &test_setup.program_test_ctx,
+                &test_setup.payer_keypair,
+                &test_setup.pool_pda,
+                eth_mint,
+                btc_mint,
+                btc_mint,
+                GetOpenPositionWithSwapAmountAndFeesParams {
+                    collateral_amount: utils::scale_f64(0.005, ETH_DECIMALS),
+                    size: utils::scale_f64(0.001, BTC_DECIMALS),
+                    side: Side::Long,
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            open_position_with_swap_amount_and_fees.entry_price,
+            utils::scale(30_300, Perpetuals::USD_DECIMALS)
+        );
+        assert_eq!(
+            open_position_with_swap_amount_and_fees.liquidation_price,
+            utils::scale(26_400, Perpetuals::USD_DECIMALS)
+        );
+        assert_eq!(
+            open_position_with_swap_amount_and_fees.open_position_fee,
+            utils::scale_f64(0.00001, BTC_DECIMALS)
+        );
+        assert_eq!(
+            open_position_with_swap_amount_and_fees.swap_fee_in,
+            utils::scale_f64(0.00005, ETH_DECIMALS)
+        );
+        assert_eq!(
+            open_position_with_swap_amount_and_fees.swap_fee_out,
+            utils::scale_f64(0.000003, BTC_DECIMALS)
+        );
+    }
 
     let position_pda = test_instructions::open_position_with_swap(
         &test_setup.program_test_ctx,

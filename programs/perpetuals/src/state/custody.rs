@@ -467,7 +467,7 @@ impl Custody {
     pub fn add_position(
         &mut self,
         position: &Position,
-        token_price: &OraclePrice,
+        _token_price: &OraclePrice,
         curtime: i64,
         collateral_custody: Option<&mut Custody>,
     ) -> Result<()> {

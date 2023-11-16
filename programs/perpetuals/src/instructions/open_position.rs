@@ -284,7 +284,6 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
 
     let position_price =
         pool.get_entry_price(&token_price, &token_ema_price, params.side, custody)?;
-    msg!("Entry price: {}", position_price);
 
     if params.side == Side::Long {
         require_gte!(

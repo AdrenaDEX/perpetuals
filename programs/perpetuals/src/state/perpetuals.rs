@@ -7,7 +7,6 @@ use {
     },
     crate::{
         adapters,
-        instruction::GetSwapAmountAndFees,
         instructions::{
             get_swap_amount_and_fees::GetSwapAmountAndFeesParams,
             open_position::OpenPositionParams, GetEntryPriceAndFeeParams, SwapParams,
