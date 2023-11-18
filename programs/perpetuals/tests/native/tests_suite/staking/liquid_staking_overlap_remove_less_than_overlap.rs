@@ -6,7 +6,8 @@ use {
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            AddLiquidStakeParams, AddLiquidityParams, AddVestParams, RemoveLiquidStakeParams,
+            AddLiquidStakeParams, AddLiquidityParams, AddVestParams, BucketName,
+            RemoveLiquidStakeParams,
         },
         state::{cortex::Cortex, staking::StakingRound},
     },
@@ -121,6 +122,7 @@ pub async fn liquid_staking_overlap_remove_less_than_overlap() {
                 &test_setup.governance_realm_pda,
                 &AddVestParams {
                     amount: utils::scale(2, Cortex::LM_DECIMALS),
+                    origin_bucket: BucketName::CoreContributor,
                     unlock_start_timestamp: current_time,
                     unlock_end_timestamp: current_time + utils::days_in_seconds(7),
                 },

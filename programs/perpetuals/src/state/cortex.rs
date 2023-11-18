@@ -2,7 +2,7 @@
 
 use {
     super::{perpetuals::Perpetuals, staking::Staking, vest::Vest},
-    crate::math,
+    crate::{error::PerpetualsError, instructions::BucketName, math},
     anchor_lang::prelude::*,
     anchor_spl::token::Mint,
 };
@@ -36,13 +36,18 @@ pub struct Cortex {
     //
     // Lm tokens minting rules
     //
+    // Note: reserved amount are there for vesting purposes
     pub core_contributor_bucket_allocation: u64,
+    pub core_contributor_bucket_reserved_amount: u64,
     pub core_contributor_bucket_minted_amount: u64,
     pub dao_treasury_bucket_allocation: u64,
+    pub dao_treasury_bucket_reserved_amount: u64,
     pub dao_treasury_bucket_minted_amount: u64,
     pub pol_bucket_allocation: u64,
+    pub pol_bucket_reserved_amount: u64,
     pub pol_bucket_minted_amount: u64,
     pub ecosystem_bucket_allocation: u64,
+    pub ecosystem_bucket_reserved_amount: u64,
     pub ecosystem_bucket_minted_amount: u64,
 }
 
@@ -183,6 +188,117 @@ impl Cortex {
     // returns the current size of the Cortex
     pub fn size(&self) -> usize {
         Cortex::LEN + self.vests.len() * Vest::LEN
+    }
+
+    pub fn get_token_amount_left_in_bucket(&self, bucket: BucketName) -> Result<u64> {
+        match bucket {
+            BucketName::CoreContributor => math::checked_sub(
+                self.core_contributor_bucket_allocation,
+                self.core_contributor_bucket_minted_amount,
+            ),
+            BucketName::DaoTreasury => math::checked_sub(
+                self.dao_treasury_bucket_allocation,
+                self.dao_treasury_bucket_minted_amount,
+            ),
+            BucketName::PoL => {
+                math::checked_sub(self.pol_bucket_allocation, self.pol_bucket_minted_amount)
+            }
+            BucketName::Ecosystem => math::checked_sub(
+                self.ecosystem_bucket_allocation,
+                self.ecosystem_bucket_minted_amount,
+            ),
+        }
+    }
+
+    pub fn get_non_reserved_token_amount_left_in_bucket(&self, bucket: BucketName) -> Result<u64> {
+        match bucket {
+            BucketName::CoreContributor => math::checked_sub(
+                self.get_token_amount_left_in_bucket(bucket)?,
+                self.core_contributor_bucket_reserved_amount,
+            ),
+            BucketName::DaoTreasury => math::checked_sub(
+                self.get_token_amount_left_in_bucket(bucket)?,
+                self.dao_treasury_bucket_reserved_amount,
+            ),
+            BucketName::PoL => math::checked_sub(
+                self.get_token_amount_left_in_bucket(bucket)?,
+                self.pol_bucket_reserved_amount,
+            ),
+            BucketName::Ecosystem => math::checked_sub(
+                self.get_token_amount_left_in_bucket(bucket)?,
+                self.ecosystem_bucket_reserved_amount,
+            ),
+        }
+    }
+
+    pub fn update_bucket_reserved_amount(&mut self, bucket: BucketName, amount: i64) -> Result<()> {
+        match bucket {
+            BucketName::CoreContributor => {
+                self.core_contributor_bucket_reserved_amount = if amount >= 0 {
+                    math::checked_add(self.core_contributor_bucket_reserved_amount, amount as u64)?
+                } else {
+                    math::checked_sub(
+                        self.core_contributor_bucket_reserved_amount,
+                        amount.abs() as u64,
+                    )?
+                };
+            }
+            BucketName::DaoTreasury => {
+                self.dao_treasury_bucket_reserved_amount = if amount >= 0 {
+                    math::checked_add(self.dao_treasury_bucket_reserved_amount, amount as u64)?
+                } else {
+                    math::checked_sub(
+                        self.dao_treasury_bucket_reserved_amount,
+                        amount.abs() as u64,
+                    )?
+                };
+            }
+            BucketName::PoL => {
+                self.pol_bucket_reserved_amount = if amount >= 0 {
+                    math::checked_add(self.pol_bucket_reserved_amount, amount as u64)?
+                } else {
+                    math::checked_sub(self.pol_bucket_reserved_amount, amount.abs() as u64)?
+                };
+            }
+            BucketName::Ecosystem => {
+                self.ecosystem_bucket_reserved_amount = if amount >= 0 {
+                    math::checked_add(self.ecosystem_bucket_reserved_amount, amount as u64)?
+                } else {
+                    math::checked_sub(self.ecosystem_bucket_reserved_amount, amount.abs() as u64)?
+                };
+            }
+        }
+        require!(
+            self.get_non_reserved_token_amount_left_in_bucket(bucket)? > 0,
+            PerpetualsError::InsuficientBucketReserve
+        );
+        Ok(())
+    }
+
+    pub fn update_bucket_minted_amount(&mut self, bucket: BucketName, amount: u64) -> Result<()> {
+        match bucket {
+            BucketName::CoreContributor => {
+                self.core_contributor_bucket_minted_amount =
+                    math::checked_add(self.core_contributor_bucket_minted_amount, amount)?;
+            }
+            BucketName::DaoTreasury => {
+                self.dao_treasury_bucket_minted_amount =
+                    math::checked_add(self.dao_treasury_bucket_minted_amount, amount)?;
+            }
+            BucketName::PoL => {
+                self.pol_bucket_minted_amount =
+                    math::checked_add(self.pol_bucket_minted_amount, amount)?;
+            }
+            BucketName::Ecosystem => {
+                self.ecosystem_bucket_minted_amount =
+                    math::checked_add(self.ecosystem_bucket_minted_amount, amount)?;
+            }
+        }
+        require!(
+            self.get_token_amount_left_in_bucket(bucket)? > 0,
+            PerpetualsError::InsuficientBucketReserve
+        );
+        Ok(())
     }
 }
 

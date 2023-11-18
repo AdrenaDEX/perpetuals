@@ -1,10 +1,15 @@
-use {crate::math, anchor_lang::prelude::*};
+use {
+    crate::{instructions::BucketName, math},
+    anchor_lang::prelude::*,
+};
 
 #[account]
 #[derive(Default, Debug)]
 pub struct Vest {
+    pub bump: u8,
     // Note: this is the flat amount of token allocated to the vest
     pub amount: u64,
+    pub origin_bucket: BucketName,
     pub unlock_start_timestamp: i64,
     pub unlock_end_timestamp: i64,
 
@@ -12,7 +17,6 @@ pub struct Vest {
     pub last_claim_timestamp: i64,
 
     pub owner: Pubkey,
-    pub bump: u8,
 }
 
 impl Vest {
@@ -77,6 +81,7 @@ mod test {
     ) -> Vest {
         Vest {
             amount,
+            origin_bucket: BucketName::Ecosystem,
             // Unix timestamps (seconds)
             unlock_start_timestamp,
             unlock_end_timestamp,

@@ -164,6 +164,17 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
     {
         cortex.vested_token_amount =
             math::checked_sub(cortex.vested_token_amount, claimable_amount.into())?;
+
+        // substract the claimed amount from the bucket reserved amount
+        cortex.update_bucket_reserved_amount(
+            vest.origin_bucket,
+            -(i64::try_from(claimable_amount).map_err(|_| PerpetualsError::MathOverflow)?),
+        )?;
+        // substract the claimed amount from the total minted amount
+        cortex.update_bucket_reserved_amount(
+            vest.origin_bucket,
+            -(i64::try_from(claimable_amount).map_err(|_| PerpetualsError::MathOverflow)?),
+        )?;
     }
 
     // If everything have been claimed, remove vesting from the cortex list

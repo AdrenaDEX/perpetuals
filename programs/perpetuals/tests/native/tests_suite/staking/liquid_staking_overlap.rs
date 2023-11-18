@@ -1,3 +1,5 @@
+use perpetuals::instructions::BucketName;
+
 use {
     crate::{
         test_instructions,
@@ -119,6 +121,7 @@ pub async fn liquid_staking_overlap() {
                 &test_setup.governance_realm_pda,
                 &AddVestParams {
                     amount: utils::scale(2, Cortex::LM_DECIMALS),
+                    origin_bucket: BucketName::CoreContributor,
                     unlock_start_timestamp: current_time,
                     unlock_end_timestamp: current_time + utils::days_in_seconds(7),
                 },

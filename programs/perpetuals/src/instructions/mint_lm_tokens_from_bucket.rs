@@ -66,11 +66,12 @@ pub struct MintLmTokensFromBucketParams {
     pub reason: String,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub enum BucketName {
     CoreContributor,
     DaoTreasury,
     PoL,
+    #[default]
     Ecosystem,
 }
 

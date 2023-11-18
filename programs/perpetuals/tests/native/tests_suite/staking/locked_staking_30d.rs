@@ -6,7 +6,8 @@ use {
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            AddLiquidityParams, AddLockedStakeParams, AddVestParams, RemoveLockedStakeParams,
+            AddLiquidityParams, AddLockedStakeParams, AddVestParams, BucketName,
+            RemoveLockedStakeParams,
         },
         state::{cortex::Cortex, staking::StakingRound},
     },
@@ -124,6 +125,7 @@ pub async fn locked_staking_30d() {
             &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
+                origin_bucket: BucketName::CoreContributor,
                 unlock_start_timestamp: current_time,
                 unlock_end_timestamp: current_time + utils::days_in_seconds(7),
             },

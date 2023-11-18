@@ -6,8 +6,8 @@ use {
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            AddLiquidityParams, AddLockedStakeParams, AddVestParams, ClosePositionParams,
-            OpenPositionParams, RemoveLiquidityParams, SwapParams,
+            AddLiquidityParams, AddLockedStakeParams, AddVestParams, BucketName,
+            ClosePositionParams, OpenPositionParams, RemoveLiquidityParams, SwapParams,
         },
         state::{cortex::Cortex, perpetuals::Perpetuals, position::Side, staking::StakingRound},
     },
@@ -115,6 +115,7 @@ pub async fn staking_rewards_generation() {
             &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
+                origin_bucket: BucketName::CoreContributor,
                 unlock_start_timestamp: current_time,
                 unlock_end_timestamp: current_time + utils::days_in_seconds(7),
             },

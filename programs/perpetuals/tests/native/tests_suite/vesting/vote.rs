@@ -1,7 +1,10 @@
 use {
     crate::{adapters, test_instructions, utils},
     maplit::hashmap,
-    perpetuals::{instructions::AddVestParams, state::cortex::Cortex},
+    perpetuals::{
+        instructions::{AddVestParams, BucketName},
+        state::cortex::Cortex,
+    },
 };
 
 const USDC_DECIMALS: u8 = 6;
@@ -63,6 +66,7 @@ pub async fn vote() {
         &test_setup.governance_realm_pda,
         &AddVestParams {
             amount: utils::scale(1_000_000, Cortex::LM_DECIMALS),
+            origin_bucket: BucketName::CoreContributor,
             unlock_start_timestamp: current_time,
             unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
         },
