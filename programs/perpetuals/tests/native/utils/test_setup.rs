@@ -37,7 +37,6 @@ pub struct SetupCustodyParams<'a> {
     pub mint_name: &'a str,
 
     pub is_stable: bool,
-    pub is_virtual: bool,
     pub target_ratio: u64,
     pub min_ratio: u64,
     pub max_ratio: u64,
@@ -409,7 +408,6 @@ impl TestSetup {
                 let custody_pda = {
                     let add_custody_params = AddCustodyParams {
                         is_stable: custody_param.setup_custody_params.is_stable,
-                        is_virtual: custody_param.setup_custody_params.is_virtual,
                         oracle: fixtures::oracle_params_regular(custom_oracle_pda),
                         pricing: custody_param
                             .setup_custody_params

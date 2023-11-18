@@ -214,9 +214,7 @@ pub fn swap(ctx: Context<Swap>, params: &SwapParams) -> Result<()> {
     require!(
         perpetuals.permissions.allow_swap
             && receiving_custody.permissions.allow_swap
-            && dispensing_custody.permissions.allow_swap
-            && !receiving_custody.is_virtual
-            && !dispensing_custody.is_virtual,
+            && dispensing_custody.permissions.allow_swap,
         PerpetualsError::InstructionNotAllowed
     );
 

@@ -195,9 +195,7 @@ pub fn add_liquidity(ctx: Context<AddLiquidity>, params: &AddLiquidityParams) ->
     let perpetuals = ctx.accounts.perpetuals.as_mut();
     let custody = ctx.accounts.custody.as_mut();
     require!(
-        perpetuals.permissions.allow_add_liquidity
-            && custody.permissions.allow_add_liquidity
-            && !custody.is_virtual,
+        perpetuals.permissions.allow_add_liquidity && custody.permissions.allow_add_liquidity,
         PerpetualsError::InstructionNotAllowed
     );
 

@@ -3,6 +3,7 @@
 use {
     crate::{
         error::PerpetualsError,
+        math,
         state::{
             custody::{BorrowRateParams, Custody, Fees, PricingParams},
             multisig::{AdminInstruction, Multisig},
@@ -86,7 +87,6 @@ pub struct AddCustody<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct AddCustodyParams {
     pub is_stable: bool,
-    pub is_virtual: bool,
     pub oracle: OracleParams,
     pub pricing: PricingParams,
     pub permissions: Permissions,
@@ -129,6 +129,11 @@ pub fn add_custody<'info>(
     // update pool data
     pool.custodies.push(ctx.accounts.custody.key());
     pool.ratios = params.ratios.clone();
+
+    if params.is_stable {
+        pool.nb_stable_custody = math::checked_add(pool.nb_stable_custody, 1)?;
+    }
+
     if !pool.validate() {
         return err!(PerpetualsError::InvalidPoolConfig);
     }
@@ -140,7 +145,6 @@ pub fn add_custody<'info>(
     custody.token_account = ctx.accounts.custody_token_account.key();
     custody.decimals = ctx.accounts.custody_token_mint.decimals;
     custody.is_stable = params.is_stable;
-    custody.is_virtual = params.is_virtual;
     custody.oracle = params.oracle;
     custody.pricing = params.pricing;
     custody.permissions = params.permissions;

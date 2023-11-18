@@ -196,9 +196,7 @@ pub fn remove_liquidity(
     let perpetuals = ctx.accounts.perpetuals.as_mut();
     let custody = ctx.accounts.custody.as_mut();
     require!(
-        perpetuals.permissions.allow_remove_liquidity
-            && custody.permissions.allow_remove_liquidity
-            && !custody.is_virtual,
+        perpetuals.permissions.allow_remove_liquidity && custody.permissions.allow_remove_liquidity,
         PerpetualsError::InstructionNotAllowed
     );
 

@@ -227,7 +227,7 @@ pub fn remove_collateral(
         math::checked_sub(collateral_custody.assets.collateral, collateral)?;
 
     // if custody and collateral_custody accounts are the same, ensure that data is in sync
-    if position.side == Side::Long && !custody.is_virtual {
+    if position.side == Side::Long {
         *custody = collateral_custody.clone();
     }
 

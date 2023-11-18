@@ -9,7 +9,6 @@ pub mod set_admin_signers;
 pub mod set_custody_config;
 pub mod set_custom_oracle_price;
 pub mod set_permissions;
-pub mod upgrade_custody;
 pub mod withdraw_fees;
 pub mod withdraw_sol_fees;
 
@@ -50,7 +49,6 @@ pub mod remove_liquid_stake;
 pub mod remove_liquidity;
 pub mod remove_locked_stake;
 pub mod resolve_staking_round;
-pub mod set_custom_oracle_price_permissionless;
 pub mod swap;
 pub mod update_pool_aum;
 
@@ -67,8 +65,7 @@ pub use {
     init_user_staking::*, liquidate::*, mint_lm_tokens_from_bucket::*, open_position::*,
     open_position_with_swap::*, remove_collateral::*, remove_custody::*, remove_liquid_stake::*,
     remove_liquidity::*, remove_locked_stake::*, remove_pool::*, resolve_staking_round::*,
-    set_admin_signers::*, set_custody_config::*, set_custom_oracle_price::*,
-    set_custom_oracle_price_permissionless::*, set_permissions::*, set_test_time::*, swap::*,
-    test_admin_remove_collateral::*, update_pool_aum::*, upgrade_custody::*, withdraw_fees::*,
-    withdraw_sol_fees::*,
+    set_admin_signers::*, set_custody_config::*, set_custom_oracle_price::*, set_permissions::*,
+    set_test_time::*, swap::*, test_admin_remove_collateral::*, update_pool_aum::*,
+    withdraw_fees::*, withdraw_sol_fees::*,
 };

@@ -63,7 +63,6 @@ pub async fn open_close_position_with_swap() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(40.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -81,7 +80,6 @@ pub async fn open_close_position_with_swap() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(15.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -99,7 +97,6 @@ pub async fn open_close_position_with_swap() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "btc",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(15.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -228,8 +225,6 @@ pub async fn open_close_position_with_swap() {
         &test_setup.program_test_ctx,
         martin,
         &test_setup.payer_keypair,
-        &test_setup.pool_pda,
-        btc_mint,
         &position_pda,
         ClosePositionParams {
             // lowest exit price paid (slippage implied)

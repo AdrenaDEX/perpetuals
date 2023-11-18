@@ -54,7 +54,6 @@ pub async fn liquidate_position() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(50.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -72,7 +71,6 @@ pub async fn liquidate_position() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(100.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -116,6 +114,7 @@ pub async fn liquidate_position() {
         &test_setup.payer_keypair,
         &test_setup.pool_pda,
         eth_mint,
+        None,
         OpenPositionParams {
             // max price paid (slippage implied)
             price: utils::scale(1_550, ETH_DECIMALS),

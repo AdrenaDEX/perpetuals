@@ -52,7 +52,6 @@ pub async fn genesis() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(40.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -70,7 +69,6 @@ pub async fn genesis() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(15.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -88,7 +86,6 @@ pub async fn genesis() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "btc",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(15.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -106,7 +103,6 @@ pub async fn genesis() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "sol",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(30.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),

@@ -114,13 +114,6 @@ pub mod perpetuals {
         instructions::withdraw_sol_fees(ctx, &params)
     }
 
-    pub fn upgrade_custody<'info>(
-        ctx: Context<'_, '_, '_, 'info, UpgradeCustody<'info>>,
-        params: UpgradeCustodyParams,
-    ) -> Result<u8> {
-        instructions::upgrade_custody(ctx, &params)
-    }
-
     pub fn set_custom_oracle_price<'info>(
         ctx: Context<'_, '_, '_, 'info, SetCustomOraclePrice<'info>>,
         params: SetCustomOraclePriceParams,
@@ -345,14 +338,5 @@ pub mod perpetuals {
         params: MintLmTokensFromBucketParams,
     ) -> Result<u8> {
         instructions::mint_lm_tokens_from_bucket(ctx, &params)
-    }
-
-    // This instruction must be part of a larger transaction where the **first** instruction
-    // is an ed25519 verification of the serialized oracle price update params.
-    pub fn set_custom_oracle_price_permissionless(
-        ctx: Context<SetCustomOraclePricePermissionless>,
-        params: SetCustomOraclePricePermissionlessParams,
-    ) -> Result<()> {
-        instructions::set_custom_oracle_price_permissionless(ctx, &params)
     }
 }

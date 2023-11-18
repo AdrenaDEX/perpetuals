@@ -11,6 +11,8 @@ use {
     anchor_lang::prelude::*,
 };
 
+pub const MAX_STABLE_CUSTODY: usize = 1;
+
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Debug)]
 pub enum FeesMode {
     Fixed,
@@ -140,6 +142,52 @@ pub struct PositionStats {
     pub total_quantity: u128,
     pub cumulative_interest_usd: u64,
     pub cumulative_interest_snapshot: u128,
+
+    // Store the stable custody locked amount related to this custody
+    //
+    // Example:
+    // When Shorting 1 ETH, 1500 USDC get locked to provide for trader maxpayoff
+    // usdc custody locked amount: +1500
+    // eth custody stable locked amount: +1500
+    //
+    // Needed to be able to calculate PnL
+    pub stable_locked_amount: [StableLockedAmountStat; MAX_STABLE_CUSTODY],
+}
+
+impl PositionStats {
+    pub fn get_custody_stable_locked_amount(
+        &mut self,
+        stable_custody: &Pubkey,
+    ) -> Result<&mut StableLockedAmountStat> {
+        // Find the index of the stable custody within the array
+        if let Some(index) =
+            self.stable_locked_amount
+                .iter()
+                .position(|stable_locked_amount_stat| {
+                    stable_locked_amount_stat.custody.eq(stable_custody)
+                })
+        {
+            return Ok(&mut self.stable_locked_amount[index]);
+        }
+
+        // If the stable custody is not in the array, find the index of an empty spot
+        if let Some(index) = self
+            .stable_locked_amount
+            .iter()
+            .position(|stable_locked_amount_stat| stable_locked_amount_stat.locked_amount.eq(&0u64))
+        {
+            return Ok(&mut self.stable_locked_amount[index]);
+        }
+
+        Err(PerpetualsError::CustodyStableLockedAmountNotFound.into())
+    }
+}
+
+#[account]
+#[derive(Copy, Default, Debug, PartialEq)]
+pub struct StableLockedAmountStat {
+    pub custody: Pubkey,
+    pub locked_amount: u64,
 }
 
 #[account]
@@ -151,7 +199,6 @@ pub struct Custody {
     pub token_account: Pubkey,
     pub decimals: u8,
     pub is_stable: bool,
-    pub is_virtual: bool,
     pub oracle: OracleParams,
     pub pricing: PricingParams,
     pub permissions: Permissions,
@@ -181,51 +228,6 @@ pub fn get_custody_mint_from_account_info(account_info: &AccountInfo<'_>) -> Pub
     pubkey_bytes.copy_from_slice(data_slice);
 
     Pubkey::from(pubkey_bytes)
-}
-
-#[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
-pub struct DeprecatedPricingParams {
-    pub use_ema: bool,
-    // whether to account for unrealized pnl in assets under management calculations
-    pub use_unrealized_pnl_in_aum: bool,
-    // pricing params have implied BPS_DECIMALS decimals
-    pub trade_spread_long: u64,
-    pub trade_spread_short: u64,
-    pub swap_spread: u64,
-    pub min_initial_leverage: u64,
-    pub max_leverage: u64,
-    // max_user_profit = position_size * max_payoff_mult
-    pub max_payoff_mult: u64,
-}
-
-#[account]
-#[derive(Default, Debug)]
-pub struct DeprecatedCustody {
-    // static parameters
-    pub pool: Pubkey,
-    pub mint: Pubkey,
-    pub token_account: Pubkey,
-    pub decimals: u8,
-    pub is_stable: bool,
-    pub oracle: OracleParams,
-    pub pricing: PricingParams,
-    pub permissions: Permissions,
-    pub fees: Fees,
-    pub borrow_rate: BorrowRateParams,
-
-    // dynamic variables
-    pub assets: Assets,
-    pub collected_fees: FeesStats,
-    pub distributed_rewards: RewardsStats,
-    pub volume_stats: VolumeStats,
-    pub trade_stats: TradeStats,
-    pub long_positions: PositionStats,
-    pub short_positions: PositionStats,
-    pub borrow_rate_state: BorrowRateState,
-
-    // bumps for address validation
-    pub bump: u8,
-    pub token_account_bump: u8,
 }
 
 impl Default for FeesMode {
@@ -280,8 +282,7 @@ impl Custody {
     pub const LEN: usize = 8 + std::mem::size_of::<Custody>();
 
     pub fn validate(&self) -> bool {
-        (!self.is_virtual || !self.is_stable)
-            && self.token_account != Pubkey::default()
+        self.token_account != Pubkey::default()
             && self.mint != Pubkey::default()
             && self.oracle.validate()
             && self.pricing.validate()
@@ -290,8 +291,6 @@ impl Custody {
     }
 
     pub fn lock_funds(&mut self, amount: u64) -> Result<()> {
-        require!(!self.is_virtual, PerpetualsError::InvalidCollateralCustody);
-
         self.assets.locked = math::checked_add(self.assets.locked, amount)?;
 
         // check for max utilization
@@ -317,8 +316,6 @@ impl Custody {
     }
 
     pub fn unlock_funds(&mut self, amount: u64) -> Result<()> {
-        require!(!self.is_virtual, PerpetualsError::InvalidCollateralCustody);
-
         if amount > self.assets.locked {
             self.assets.locked = 0;
         } else {
@@ -341,7 +338,7 @@ impl Custody {
     }
 
     pub fn get_interest_amount_usd(&self, position: &Position, curtime: i64) -> Result<u64> {
-        if position.borrow_size_usd == 0 || self.is_virtual {
+        if position.borrow_size_usd == 0 {
             return Ok(0);
         }
 
@@ -467,7 +464,8 @@ impl Custody {
     pub fn add_position(
         &mut self,
         position: &Position,
-        _token_price: &OraclePrice,
+        // collateral price if there is a collateral_custody, overwise token price
+        token_price: &OraclePrice,
         curtime: i64,
         collateral_custody: Option<&mut Custody>,
     ) -> Result<()> {
@@ -475,7 +473,6 @@ impl Custody {
         let collective_position = self.get_collective_position(position.side)?;
         let interest_usd = self.get_interest_amount_usd(&collective_position, curtime)?;
 
-        // update positions
         let stats = if position.side == Side::Long {
             &mut self.long_positions
         } else {
@@ -484,63 +481,29 @@ impl Custody {
 
         stats.open_positions = math::checked_add(stats.open_positions, 1)?;
         stats.size_usd = math::checked_add(stats.size_usd, position.size_usd)?;
-        stats.locked_amount = math::checked_add(stats.locked_amount, position.locked_amount)?;
 
-        // update borrowed size and cumulative interest only if trading token custody is the collateral custody
-        if collateral_custody.is_none() {
-            stats.cumulative_interest_usd =
-                math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
-            stats.cumulative_interest_snapshot = position.cumulative_interest_snapshot;
-            stats.borrow_size_usd =
-                math::checked_add(stats.borrow_size_usd, position.borrow_size_usd)?;
-        }
+        // the collateral token is the one being locked and generating borrow fees
+        if let Some(collateral_custody) = collateral_custody {
+            let collective_position = collateral_custody.get_collective_position(position.side)?;
+            let interest_usd =
+                collateral_custody.get_interest_amount_usd(&collective_position, curtime)?;
 
-        let position_price = math::scale_to_exponent(
-            position.price,
-            -(Perpetuals::PRICE_DECIMALS as i32),
-            -(Perpetuals::USD_DECIMALS as i32),
-        )?;
-        let quantity = math::checked_div(
-            math::checked_mul(position.size_usd as u128, Perpetuals::BPS_POWER)?,
-            position_price as u128,
-        )?;
-        stats.weighted_price = math::checked_add(
-            stats.weighted_price,
-            math::checked_mul(position.price as u128, quantity)?,
-        )?;
-        stats.total_quantity = math::checked_add(stats.total_quantity, quantity)?;
+            // to be able to calculate PnL properly, needs to store on custody stats the amount
+            // of locked stable
+            {
+                let stable_locked_amount_stat =
+                    stats.get_custody_stable_locked_amount(&position.collateral_custody)?;
 
-        // check limits
-        // DISABLE LIMITS FOR NOW AS THERE IS AN ISSUE WITH STATS, NEEDS TO FIGURE THIS OUT FIRST
-        /*
-        if self.pricing.max_position_locked_usd > 0 {
-            let locked_amount_usd =
-                token_price.get_asset_amount_usd(position.locked_amount, self.decimals)?;
-            require!(
-                locked_amount_usd <= self.pricing.max_position_locked_usd,
-                PerpetualsError::PositionAmountLimit
-            );
-        }
-        if self.pricing.max_total_locked_usd > 0 {
-            let locked_amount_usd =
-                token_price.get_asset_amount_usd(stats.locked_amount, self.decimals)?;
-            require!(
-                locked_amount_usd <= self.pricing.max_total_locked_usd,
-                PerpetualsError::CustodyAmountLimit
-            );
-        }
-        */
-
-        // update collateral custody for interest tracking
-        if let Some(custody) = collateral_custody {
-            // compute accumulated interest
-            let collective_position = custody.get_collective_position(position.side)?;
-            let interest_usd = custody.get_interest_amount_usd(&collective_position, curtime)?;
+                stable_locked_amount_stat.locked_amount = math::checked_add(
+                    stable_locked_amount_stat.locked_amount,
+                    position.locked_amount,
+                )?;
+            }
 
             let stats = if position.side == Side::Long {
-                &mut custody.long_positions
+                &mut collateral_custody.long_positions
             } else {
-                &mut custody.short_positions
+                &mut collateral_custody.short_positions
             };
 
             stats.cumulative_interest_usd =
@@ -548,8 +511,83 @@ impl Custody {
             stats.cumulative_interest_snapshot = position.cumulative_interest_snapshot;
 
             stats.open_positions = math::checked_add(stats.open_positions, 1)?;
+
+            stats.locked_amount = math::checked_add(stats.locked_amount, position.locked_amount)?;
+
             stats.borrow_size_usd =
                 math::checked_add(stats.borrow_size_usd, position.borrow_size_usd)?;
+
+            // Enforce limits
+            {
+                if collateral_custody.pricing.max_position_locked_usd > 0 {
+                    let locked_amount_usd =
+                        token_price.get_asset_amount_usd(position.locked_amount, self.decimals)?;
+                    require!(
+                        locked_amount_usd <= self.pricing.max_position_locked_usd,
+                        PerpetualsError::PositionAmountLimit
+                    );
+                }
+
+                if collateral_custody.pricing.max_total_locked_usd > 0 {
+                    let locked_amount_usd =
+                        token_price.get_asset_amount_usd(stats.locked_amount, self.decimals)?;
+                    require!(
+                        locked_amount_usd <= self.pricing.max_total_locked_usd,
+                        PerpetualsError::CustodyAmountLimit
+                    );
+                }
+            }
+        } else {
+            // update borrowed size and cumulative interest
+            stats.cumulative_interest_usd =
+                math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
+
+            stats.cumulative_interest_snapshot = position.cumulative_interest_snapshot;
+
+            stats.locked_amount = math::checked_add(stats.locked_amount, position.locked_amount)?;
+            stats.borrow_size_usd =
+                math::checked_add(stats.borrow_size_usd, position.borrow_size_usd)?;
+
+            // enforce limits
+            {
+                if self.pricing.max_position_locked_usd > 0 {
+                    let locked_amount_usd =
+                        token_price.get_asset_amount_usd(position.locked_amount, self.decimals)?;
+                    require!(
+                        locked_amount_usd <= self.pricing.max_position_locked_usd,
+                        PerpetualsError::PositionAmountLimit
+                    );
+                }
+
+                if self.pricing.max_total_locked_usd > 0 {
+                    let locked_amount_usd =
+                        token_price.get_asset_amount_usd(stats.locked_amount, self.decimals)?;
+                    require!(
+                        locked_amount_usd <= self.pricing.max_total_locked_usd,
+                        PerpetualsError::CustodyAmountLimit
+                    );
+                }
+            }
+        }
+
+        // Update weight and quantity
+        {
+            let position_price = math::scale_to_exponent(
+                position.price,
+                -(Perpetuals::PRICE_DECIMALS as i32),
+                -(Perpetuals::USD_DECIMALS as i32),
+            )?;
+
+            let quantity = math::checked_div(
+                math::checked_mul(position.size_usd as u128, Perpetuals::BPS_POWER)?,
+                position_price as u128,
+            )?;
+
+            stats.weighted_price = math::checked_add(
+                stats.weighted_price,
+                math::checked_mul(position.price as u128, quantity)?,
+            )?;
+            stats.total_quantity = math::checked_add(stats.total_quantity, quantity)?;
         }
 
         Ok(())
@@ -574,77 +612,90 @@ impl Custody {
             &mut self.short_positions
         };
 
+        if let Some(collateral_custody) = collateral_custody {
+            // compute accumulated interest
+            let collective_position = collateral_custody.get_collective_position(position.side)?;
+            let interest_usd =
+                collateral_custody.get_interest_amount_usd(&collective_position, curtime)?;
+
+            // to be able to calculate PnL properly, needs to store on custody stats the amount
+            // of locked stable
+            {
+                let stable_locked_amount_stat =
+                    stats.get_custody_stable_locked_amount(&position.collateral_custody)?;
+
+                stable_locked_amount_stat.locked_amount = math::checked_sub(
+                    stable_locked_amount_stat.locked_amount,
+                    position.locked_amount,
+                )?;
+            }
+
+            let stats = if position.side == Side::Long {
+                &mut collateral_custody.long_positions
+            } else {
+                &mut collateral_custody.short_positions
+            };
+
+            // If it's the last position, reset all fields
+            if stats.open_positions == 1 {
+                *stats = PositionStats::default();
+            } else {
+                stats.cumulative_interest_usd =
+                    math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
+                stats.cumulative_interest_usd = stats
+                    .cumulative_interest_usd
+                    .saturating_sub(position_interest_usd);
+                stats.cumulative_interest_snapshot = cumulative_interest_snapshot;
+
+                stats.open_positions = math::checked_sub(stats.open_positions, 1)?;
+                stats.borrow_size_usd =
+                    math::checked_sub(stats.borrow_size_usd, position.borrow_size_usd)?;
+
+                stats.locked_amount =
+                    math::checked_sub(stats.locked_amount, position.locked_amount)?;
+            }
+        } else {
+            stats.cumulative_interest_usd =
+                math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
+            stats.cumulative_interest_usd = stats
+                .cumulative_interest_usd
+                .saturating_sub(position_interest_usd);
+            stats.cumulative_interest_snapshot = cumulative_interest_snapshot;
+            stats.borrow_size_usd =
+                math::checked_sub(stats.borrow_size_usd, position.borrow_size_usd)?;
+
+            stats.locked_amount = math::checked_sub(stats.locked_amount, position.locked_amount)?;
+        }
+
+        // If it's the last position, reset all fields
         if stats.open_positions == 1 {
             *stats = PositionStats::default();
             return Ok(());
         }
 
-        // update borrowed size and cumulative interest only if trading token custody is the collateral custody
-        if collateral_custody.is_none() {
-            stats.cumulative_interest_usd =
-                math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
-            stats.cumulative_interest_usd = stats
-                .cumulative_interest_usd
-                .saturating_sub(position_interest_usd);
-            stats.cumulative_interest_snapshot = cumulative_interest_snapshot;
-            stats.borrow_size_usd =
-                math::checked_sub(stats.borrow_size_usd, position.borrow_size_usd)?;
-        }
-
         stats.open_positions = math::checked_sub(stats.open_positions, 1)?;
         stats.size_usd = math::checked_sub(stats.size_usd, position.size_usd)?;
-        stats.locked_amount = math::checked_sub(stats.locked_amount, position.locked_amount)?;
 
-        let position_price = math::scale_to_exponent(
-            position.price,
-            -(Perpetuals::PRICE_DECIMALS as i32),
-            -(Perpetuals::USD_DECIMALS as i32),
-        )?;
-        let quantity = math::checked_div(
-            math::checked_mul(position.size_usd as u128, Perpetuals::BPS_POWER)?,
-            position_price as u128,
-        )?;
-        stats.weighted_price = math::checked_sub(
-            stats.weighted_price,
-            math::checked_mul(position.price as u128, quantity)?,
-        )?;
-        stats.total_quantity = math::checked_sub(stats.total_quantity, quantity)?;
-
-        // update collateral custody for interest tracking
-        if let Some(custody) = collateral_custody {
-            // compute accumulated interest
-            let collective_position = custody.get_collective_position(position.side)?;
-            let interest_usd = custody.get_interest_amount_usd(&collective_position, curtime)?;
-
-            let stats = if position.side == Side::Long {
-                &mut custody.long_positions
-            } else {
-                &mut custody.short_positions
-            };
-
-            if stats.open_positions == 1 {
-                *stats = PositionStats::default();
-                return Ok(());
-            }
-
-            stats.cumulative_interest_usd =
-                math::checked_add(stats.cumulative_interest_usd, interest_usd)?;
-            stats.cumulative_interest_usd = stats
-                .cumulative_interest_usd
-                .saturating_sub(position_interest_usd);
-            stats.cumulative_interest_snapshot = cumulative_interest_snapshot;
-
-            stats.open_positions = math::checked_sub(stats.open_positions, 1)?;
-            stats.borrow_size_usd =
-                math::checked_sub(stats.borrow_size_usd, position.borrow_size_usd)?;
+        // Update weight and quantity
+        {
+            let position_price = math::scale_to_exponent(
+                position.price,
+                -(Perpetuals::PRICE_DECIMALS as i32),
+                -(Perpetuals::USD_DECIMALS as i32),
+            )?;
+            let quantity = math::checked_div(
+                math::checked_mul(position.size_usd as u128, Perpetuals::BPS_POWER)?,
+                position_price as u128,
+            )?;
+            stats.weighted_price = math::checked_sub(
+                stats.weighted_price,
+                math::checked_mul(position.price as u128, quantity)?,
+            )?;
+            stats.total_quantity = math::checked_sub(stats.total_quantity, quantity)?;
         }
 
         Ok(())
     }
-}
-
-impl DeprecatedCustody {
-    pub const LEN: usize = 8 + std::mem::size_of::<DeprecatedCustody>();
 }
 
 #[cfg(test)]

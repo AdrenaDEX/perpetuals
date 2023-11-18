@@ -32,12 +32,6 @@ On the other hand, decentralized Forex exchange that is implemented as a trustle
 
 Reference implementation of the perpetuals exchange that can be found [here](https://github.com/solana-labs/perpetuals) supports synthetic assets and can be used to launch a Forex marketplace. It supports both, spot and leveraged trading. Follow the Quick start guide to build, deploy, and initialize the exchange.
 
-## Initializing Forex markets
-
-The primary distinction between real and synthetic assets lies in the way token custodies are set up. If upon creation `-v` (is_virtual) flag is specified, it enables a special (synthetic asset) mode for the custody. In this mode, deposits, withdrawals, or swaps are not permitted for such custody, and both long and short positions will require stablecoin collateral. This mode also relies on stablecoin reserves to cover potential profit payoffs and collect borrow interest. A custody can't be a stablecoin and virtual custody simultaneously, so in token pairs like EUR/USD, quote token should be a real stablecoin/collateral custody, for e.g. USDC. There could be multiple stablecoins custodies backing positions in the single base currency. The decision of which one to utilize for a particular trade rests with the front end or the trader.
-
-Token custodies need to be initialized for every collateral or trading token. These custodies could be part of a single market (pool) or several markets. If all custodies are incorporated into a single pool, liquidity is shared among all currency pairs, providing benefits for traders. However, liquidity providers, who bear the profit and loss impact of traders for the market they supply liquidity to, may opt to limit their risk exposure to a single currency pair. In such scenarios, separate markets are considered more favorable.
-
 ## Supplying Oracle prices
 
 Both spot and perpetual trades are executed based on oracle prices, ensuring a consistent execution price for traders, irrespective of their trade size. For synthetic assets to function properly, an oracle price needs to be obtained either from a service like Pyth, or custom price data must be provided by the protocol itself. For the latter scenario, the oracle type in the custody configuration needs to be set to `custom`, and the latest price and Exponential Moving Average (EMA) price of the asset should be updated as regularly as possible through the `setCustomOraclePrice` instruction.

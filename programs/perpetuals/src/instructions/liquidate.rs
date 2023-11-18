@@ -186,7 +186,7 @@ pub fn liquidate(ctx: Context<Liquidate>, _params: &LiquidateParams) -> Result<(
     )?;
 
     let fee_amount_usd = token_ema_price.get_asset_amount_usd(fee_amount, custody.decimals)?;
-    if position.side == Side::Short || custody.is_virtual {
+    if position.side == Side::Short {
         fee_amount = collateral_token_ema_price
             .get_token_amount(fee_amount_usd, collateral_custody.decimals)?;
     }
@@ -265,7 +265,7 @@ pub fn liquidate(ctx: Context<Liquidate>, _params: &LiquidateParams) -> Result<(
     }
 
     // if custody and collateral_custody accounts are the same, ensure that data is in sync
-    if position.side == Side::Long && !custody.is_virtual {
+    if position.side == Side::Long {
         collateral_custody.volume_stats.liquidation_usd = math::checked_add(
             collateral_custody.volume_stats.liquidation_usd,
             position.size_usd,

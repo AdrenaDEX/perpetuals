@@ -202,9 +202,7 @@ pub fn add_genesis_liquidity(
     let custody = ctx.accounts.custody.as_mut();
 
     require!(
-        perpetuals.permissions.allow_add_liquidity
-            && custody.permissions.allow_add_liquidity
-            && !custody.is_virtual,
+        perpetuals.permissions.allow_add_liquidity && custody.permissions.allow_add_liquidity,
         PerpetualsError::InstructionNotAllowed
     );
 

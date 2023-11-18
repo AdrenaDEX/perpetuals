@@ -121,6 +121,7 @@ pub fn add_pool<'info>(
         .bumps
         .get("lp_token_mint")
         .ok_or(ProgramError::InvalidSeeds)?;
+    pool.nb_stable_custody = 0;
 
     if !pool.validate() {
         return err!(PerpetualsError::InvalidPoolConfig);

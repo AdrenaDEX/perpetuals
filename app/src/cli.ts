@@ -119,7 +119,6 @@ async function addCustody(
   tokenMint: PublicKey,
   tokenOracle: PublicKey,
   isStable: boolean,
-  isVirtual: boolean,
   oracleType: keyof OracleParams["oracleType"] = "none"
 ): Promise<void> {
   // to be loaded from config file
@@ -194,7 +193,6 @@ async function addCustody(
     poolName,
     tokenMint,
     isStable,
-    isVirtual,
     oracleConfig,
     pricingConfig,
     permissions,

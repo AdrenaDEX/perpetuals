@@ -59,34 +59,6 @@ pub struct SetCustomOraclePricePermissionlessParams {
     pub publish_time: i64,
 }
 
-pub fn set_custom_oracle_price_permissionless(
-    ctx: Context<SetCustomOraclePricePermissionless>,
-    params: &SetCustomOraclePricePermissionlessParams,
-) -> Result<()> {
-    if params.publish_time <= ctx.accounts.oracle_account.publish_time {
-        msg!("Custom oracle price did not update because the requested publish time is stale.");
-        return Ok(());
-    }
-    // Get what should be the Ed25519Program signature verification instruction.
-    let signature_ix: Instruction =
-        sysvar::instructions::load_instruction_at_checked(0, &ctx.accounts.ix_sysvar)?;
-
-    validate_ed25519_signature_instruction(
-        &signature_ix,
-        &ctx.accounts.custody.oracle.oracle_authority,
-        params,
-    )?;
-
-    ctx.accounts.oracle_account.set(
-        params.price,
-        params.expo,
-        params.conf,
-        params.ema,
-        params.publish_time,
-    );
-    Ok(())
-}
-
 fn validate_ed25519_signature_instruction(
     signature_ix: &Instruction,
     expected_pubkey: &Pubkey,
