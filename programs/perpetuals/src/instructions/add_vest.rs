@@ -203,9 +203,9 @@ pub fn add_vest<'info>(
         cortex.vests.push(ctx.accounts.vest.key());
 
         // update reserved amount in bucket
-        cortex.update_bucket_reserved_amount(
+        cortex.update_bucket_vested_amount(
             params.origin_bucket,
-            -(i64::try_from(params.amount).map_err(|_| PerpetualsError::MathOverflow)?),
+            i64::try_from(params.amount).map_err(|_| PerpetualsError::MathOverflow)?,
         )?;
 
         // stats

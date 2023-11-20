@@ -137,7 +137,7 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
                     ]],
                 ),
                 MintLmTokensFromBucketParams {
-                    bucket_name: BucketName::Ecosystem,
+                    bucket_name: vest.origin_bucket,
                     amount: claimable_amount,
                     reason: String::from("Liquidity mining rewards"),
                 },
@@ -166,12 +166,7 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
             math::checked_sub(cortex.vested_token_amount, claimable_amount.into())?;
 
         // substract the claimed amount from the bucket reserved amount
-        cortex.update_bucket_reserved_amount(
-            vest.origin_bucket,
-            -(i64::try_from(claimable_amount).map_err(|_| PerpetualsError::MathOverflow)?),
-        )?;
-        // substract the claimed amount from the total minted amount
-        cortex.update_bucket_reserved_amount(
+        cortex.update_bucket_vested_amount(
             vest.origin_bucket,
             -(i64::try_from(claimable_amount).map_err(|_| PerpetualsError::MathOverflow)?),
         )?;

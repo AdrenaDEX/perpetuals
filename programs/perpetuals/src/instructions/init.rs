@@ -235,19 +235,19 @@ pub fn init<'info>(
         // Lm tokens minting rules
         {
             cortex.core_contributor_bucket_allocation = params.core_contributor_bucket_allocation;
-            cortex.core_contributor_bucket_reserved_amount = u64::MIN;
+            cortex.core_contributor_bucket_vested_amount = u64::MIN;
             cortex.core_contributor_bucket_minted_amount = u64::MIN;
 
             cortex.dao_treasury_bucket_allocation = params.dao_treasury_bucket_allocation;
-            cortex.dao_treasury_bucket_reserved_amount = u64::MIN;
+            cortex.dao_treasury_bucket_vested_amount = u64::MIN;
             cortex.dao_treasury_bucket_minted_amount = u64::MIN;
 
             cortex.pol_bucket_allocation = params.pol_bucket_allocation;
-            cortex.pol_bucket_reserved_amount = u64::MIN;
+            cortex.pol_bucket_vested_amount = u64::MIN;
             cortex.pol_bucket_minted_amount = u64::MIN;
 
             cortex.ecosystem_bucket_allocation = params.ecosystem_bucket_allocation;
-            cortex.ecosystem_bucket_reserved_amount = u64::MIN;
+            cortex.ecosystem_bucket_vested_amount = u64::MIN;
             cortex.ecosystem_bucket_minted_amount = u64::MIN;
         }
 

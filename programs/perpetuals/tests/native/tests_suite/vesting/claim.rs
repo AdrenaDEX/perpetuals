@@ -1,7 +1,7 @@
 use {
     crate::{
-        adapters, test_instructions,
-        utils::{self, pda, warp_forward},
+        test_instructions,
+        utils::{self, pda, scale, warp_forward},
     },
     maplit::hashmap,
     perpetuals::{
@@ -51,9 +51,9 @@ pub async fn claim() {
             core_contributor_bucket_starting_allocation,
             Cortex::LM_DECIMALS,
         ),
-        utils::scale(1_000_000, Cortex::LM_DECIMALS),
-        utils::scale(1_000_000, Cortex::LM_DECIMALS),
-        utils::scale(1_000_000, Cortex::LM_DECIMALS),
+        utils::scale(2_000_000, Cortex::LM_DECIMALS),
+        utils::scale(3_000_000, Cortex::LM_DECIMALS),
+        utils::scale(4_000_000, Cortex::LM_DECIMALS),
     )
     .await;
 
@@ -63,7 +63,7 @@ pub async fn claim() {
 
     let multisig_signers = test_setup.get_multisig_signers();
 
-    // Alice: vest 250m token, unlock period from now to in 7 days
+    // Alice: vest 250k token, unlock period from now to in 7 days
     let vest_amount = 250_000;
     let current_time = utils::get_current_unix_timestamp(&test_setup.program_test_ctx).await;
     let (cortex_pda, _) = pda::get_cortex_pda();
@@ -112,12 +112,13 @@ pub async fn claim() {
             cortex_after
                 .get_token_amount_left_in_bucket(BucketName::CoreContributor)
                 .unwrap()
-                - vest_amount
+                .checked_sub(scale(vest_amount, Cortex::LM_DECIMALS))
+                .unwrap()
         );
     }
 
     // move 7 days forward
-    warp_forward(&test_setup.program_test_ctx, 7 * 24 * 60 * 60).await;
+    warp_forward(&test_setup.program_test_ctx, 7 * 24 * 60 * 60 + 1).await;
 
     // Alice: claim vest
     test_instructions::claim_vest(
@@ -141,8 +142,10 @@ pub async fn claim() {
             cortex_before
                 .get_token_amount_left_in_bucket(BucketName::CoreContributor)
                 .unwrap()
-                - vest_amount
+                .checked_sub(scale(vest_amount, Cortex::LM_DECIMALS))
+                .unwrap()
         );
+        // The vest is claimed, so no more reserved tokens
         assert_eq!(
             cortex_after
                 .get_non_reserved_token_amount_left_in_bucket(BucketName::CoreContributor)
@@ -150,7 +153,6 @@ pub async fn claim() {
             cortex_after
                 .get_token_amount_left_in_bucket(BucketName::CoreContributor)
                 .unwrap()
-                - vest_amount
         );
         // Verify that other buckets didn't move
         {

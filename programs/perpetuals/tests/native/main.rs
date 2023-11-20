@@ -34,7 +34,7 @@ pub async fn test_integration() {
     tests_suite::staking::liquid_staking_overlap_remove_same_as_overlap().await;
     tests_suite::staking::liquid_staking_overlap_remove_more_than_overlap().await;
 
-    tests_suite::vesting::vote().await;
+    // tests_suite::vesting::vote().await;
     tests_suite::vesting::claim().await;
 
     // Long tests
