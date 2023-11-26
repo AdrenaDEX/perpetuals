@@ -370,7 +370,10 @@ pub async fn open_and_close_short_position_accounting() {
                     let after = &usdc_custody_account_after.short_positions;
 
                     assert_eq!(before.open_positions + 1, after.open_positions);
-                    assert_eq!(before.borrow_size_usd + 1485_000_000, after.borrow_size_usd);
+                    assert_eq!(
+                        before.borrow_size_usd + 1_485_000_000,
+                        after.borrow_size_usd
+                    );
                     assert_eq!(before.locked_amount + 1_485_000_000, after.locked_amount);
 
                     assert_unchanged!(before.size_usd, after.size_usd);
@@ -523,7 +526,7 @@ pub async fn open_and_close_short_position_accounting() {
                         after.close_position_usd
                     );
 
-                    assert_unchanged!(before.swap_usd, before.swap_usd);
+                    assert_unchanged!(before.swap_usd, after.swap_usd);
                     assert_unchanged!(before.open_position_usd, after.open_position_usd);
                     assert_unchanged!(before.add_liquidity_usd, after.add_liquidity_usd);
                     assert_unchanged!(before.remove_liquidity_usd, after.remove_liquidity_usd);
@@ -536,7 +539,7 @@ pub async fn open_and_close_short_position_accounting() {
                     let after = &usdc_custody_account_after.volume_stats;
 
                     assert_unchanged!(before.close_position_usd, after.close_position_usd);
-                    assert_unchanged!(before.swap_usd, before.swap_usd);
+                    assert_unchanged!(before.swap_usd, after.swap_usd);
                     assert_unchanged!(before.open_position_usd, after.open_position_usd);
                     assert_unchanged!(before.add_liquidity_usd, after.add_liquidity_usd);
                     assert_unchanged!(before.remove_liquidity_usd, after.remove_liquidity_usd);

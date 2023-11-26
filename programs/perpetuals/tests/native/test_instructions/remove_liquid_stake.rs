@@ -22,7 +22,7 @@ pub async fn remove_liquid_stake(
     // ==== GIVEN =============================================================
     let transfer_authority_pda = pda::get_transfer_authority_pda().0;
     let lm_token_mint_pda = pda::get_lm_token_mint_pda().0;
-    let staking_pda = pda::get_staking_pda(&staked_token_mint).0;
+    let staking_pda = pda::get_staking_pda(staked_token_mint).0;
     let user_staking_pda = pda::get_user_staking_pda(&owner.pubkey(), &staking_pda).0;
     let perpetuals_pda = pda::get_perpetuals_pda().0;
     let cortex_pda = pda::get_cortex_pda().0;
@@ -33,7 +33,7 @@ pub async fn remove_liquid_stake(
     let governance_token_mint_pda = pda::get_governance_token_mint_pda().0;
 
     let staked_token_account_address =
-        utils::find_associated_token_account(&owner.pubkey(), &staked_token_mint).0;
+        utils::find_associated_token_account(&owner.pubkey(), staked_token_mint).0;
     let lm_token_account_address =
         utils::find_associated_token_account(&owner.pubkey(), &lm_token_mint_pda).0;
     let reward_token_account_address =

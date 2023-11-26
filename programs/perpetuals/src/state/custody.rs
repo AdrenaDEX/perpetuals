@@ -176,7 +176,7 @@ impl PositionStats {
             .iter()
             .position(|stable_locked_amount_stat| stable_locked_amount_stat.locked_amount.eq(&0u64))
         {
-            self.stable_locked_amount[index].custody = stable_custody.clone();
+            self.stable_locked_amount[index].custody = *stable_custody;
 
             return Ok(&mut self.stable_locked_amount[index]);
         }

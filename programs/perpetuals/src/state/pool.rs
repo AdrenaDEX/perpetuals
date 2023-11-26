@@ -760,9 +760,6 @@ impl Pool {
 
         let mut pool_amount_usd: u128 = 0;
         for (idx, &custody) in self.custodies.iter().enumerate() {
-            println!("");
-            println!(">>> custody {}", idx);
-
             let oracle_idx = idx + self.custodies.len();
             if oracle_idx >= accounts.len() {
                 return Err(ProgramError::NotEnoughAccountKeys.into());
@@ -786,9 +783,6 @@ impl Pool {
                 curtime,
                 custody.pricing.use_ema,
             )?;
-
-            println!(">>> token_price: {:?}", token_price);
-            println!(">>> token_ema_price: {:?}", token_ema_price);
 
             let aum_token_price = match aum_calc_mode {
                 AumCalcMode::Last => token_price,

@@ -85,7 +85,7 @@ pub async fn close_position(
             lp_staking: lp_staking_pda,
             cortex: cortex_pda,
             perpetuals: perpetuals_pda,
-            pool: *&position_account.pool,
+            pool: position_account.pool,
             position: *position_pda,
             custody: custody_pda,
             custody_oracle_account: custody_oracle_account_address,

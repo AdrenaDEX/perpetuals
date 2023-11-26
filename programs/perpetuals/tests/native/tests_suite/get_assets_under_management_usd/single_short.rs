@@ -127,8 +127,7 @@ pub async fn single_short() {
         },
     )
     .await
-    .unwrap()
-    .0;
+    .unwrap();
 
     // Value after add liquidity
     let aum_after_init: u128 = 30_000_000_000;

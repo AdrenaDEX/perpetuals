@@ -326,16 +326,12 @@ impl TestSetup {
 
         // Initialize users token accounts for each mints
         {
-            let mut mints_pubkeys: Vec<Pubkey> =
-                mints.values().into_iter().map(|info| info.pubkey).collect();
+            let mut mints_pubkeys: Vec<Pubkey> = mints.values().map(|info| info.pubkey).collect();
 
             mints_pubkeys.push(lm_token_mint);
 
-            let users_pubkeys: Vec<Pubkey> = users
-                .values()
-                .into_iter()
-                .map(|keypair| keypair.pubkey())
-                .collect();
+            let users_pubkeys: Vec<Pubkey> =
+                users.values().map(|keypair| keypair.pubkey()).collect();
 
             utils::initialize_users_token_accounts(&program_test_ctx, mints_pubkeys, users_pubkeys)
                 .await;

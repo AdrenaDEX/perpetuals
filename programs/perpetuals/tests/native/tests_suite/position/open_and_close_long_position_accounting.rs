@@ -401,7 +401,7 @@ pub async fn open_and_close_long_position_accounting() {
                     after.close_position_usd
                 );
 
-                assert_unchanged!(before.swap_usd, before.swap_usd);
+                assert_unchanged!(before.swap_usd, after.swap_usd);
                 assert_unchanged!(before.open_position_usd, after.open_position_usd);
                 assert_unchanged!(before.add_liquidity_usd, after.add_liquidity_usd);
                 assert_unchanged!(before.remove_liquidity_usd, after.remove_liquidity_usd);

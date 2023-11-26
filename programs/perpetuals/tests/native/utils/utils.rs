@@ -500,7 +500,7 @@ pub async fn get_assets_under_management_usd(
     // Add all custodies accounts
     for custody_pda in &pool_account.custodies {
         account_infos.push(
-            get_custody_account_info(program_test_ctx, &custody_pda)
+            get_custody_account_info(program_test_ctx, custody_pda)
                 .await
                 .unwrap(),
         );
