@@ -88,4 +88,6 @@ pub enum PerpetualsError {
     PermissionlessOracleMessageMismatch,
     #[msg("Cannot find custody stable locked amount")]
     CustodyStableLockedAmountNotFound,
+    #[msg("Cannot find custody")]
+    CustodyNotFound,
 }

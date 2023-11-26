@@ -340,6 +340,19 @@ where
     }
 }
 
+pub fn checked_as_u16<T>(arg: T) -> Result<u16>
+where
+    T: Display + num_traits::ToPrimitive + Clone,
+{
+    let option: Option<u16> = num_traits::NumCast::from(arg.clone());
+    if let Some(res) = option {
+        Ok(res)
+    } else {
+        msg!("Error: Overflow in {} as u16", arg);
+        err!(PerpetualsError::MathOverflow)
+    }
+}
+
 pub fn checked_as_u64<T>(arg: T) -> Result<u64>
 where
     T: Display + num_traits::ToPrimitive + Clone,

@@ -40,8 +40,8 @@ fn get_opt_pubkey_from_account_info(opt_acc: Option<&AccountInfo>) -> Option<Pub
     Some(*acc.key)
 }
 
-pub fn set_governance_delegate<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, SetGovernanceDelegate<'info>>,
+pub fn set_governance_delegate<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, SetGovernanceDelegate<'info>>,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
 
@@ -64,8 +64,8 @@ pub fn set_governance_delegate<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn deposit_governing_tokens<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, DepositGoverningTokens<'info>>,
+pub fn deposit_governing_tokens<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, DepositGoverningTokens<'info>>,
     amount: u64,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
@@ -96,8 +96,8 @@ pub fn deposit_governing_tokens<'a, 'b, 'c, 'info>(
 /// owner of the token_owner_record is signing when the token_owner_record data is empty.
 /// We bypass this by calling the `create_token_owner_record` ix first and using this altered version of the IX.
 #[allow(clippy::too_many_arguments)]
-pub fn deposit_governing_tokens_owner_not_signer<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, DepositGoverningTokens<'info>>,
+pub fn deposit_governing_tokens_owner_not_signer<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, DepositGoverningTokens<'info>>,
     amount: u64,
 ) -> Result<()> {
     let program_id = &spl_governance_program_adapter::ID;
@@ -149,8 +149,8 @@ pub fn deposit_governing_tokens_owner_not_signer<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn withdraw_governing_tokens<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, WithdrawGoverningTokens<'info>>,
+pub fn withdraw_governing_tokens<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, WithdrawGoverningTokens<'info>>,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
 
@@ -170,8 +170,8 @@ pub fn withdraw_governing_tokens<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn cast_vote<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, CastVote<'info>>,
+pub fn cast_vote<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, CastVote<'info>>,
     vote: Vote,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
@@ -201,8 +201,8 @@ pub fn cast_vote<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn relinquish_vote<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, RelinquishVote<'info>>,
+pub fn relinquish_vote<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, RelinquishVote<'info>>,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
 
@@ -227,8 +227,8 @@ pub fn relinquish_vote<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn revoke_governing_token<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, RevokeGoverningTokens<'info>>,
+pub fn revoke_governing_token<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, RevokeGoverningTokens<'info>>,
     amount: u64,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
@@ -250,8 +250,8 @@ pub fn revoke_governing_token<'a, 'b, 'c, 'info>(
     .map_err(Into::into)
 }
 
-pub fn create_token_owner_record<'a, 'b, 'c, 'info>(
-    ctx: CpiContext<'a, 'b, 'c, 'info, CreateTokenOwnerRecord<'info>>,
+pub fn create_token_owner_record<'info>(
+    ctx: CpiContext<'_, '_, '_, 'info, CreateTokenOwnerRecord<'info>>,
 ) -> Result<()> {
     assert_governance_program_account(ctx.program.key)?;
 

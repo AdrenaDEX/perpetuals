@@ -11,7 +11,7 @@ use {
     anchor_lang::prelude::*,
 };
 
-pub const MAX_STABLE_CUSTODY: usize = 1;
+pub const MAX_STABLE_CUSTODY: usize = 3;
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Debug)]
 pub enum FeesMode {
@@ -24,23 +24,23 @@ pub enum FeesMode {
 pub struct Fees {
     pub mode: FeesMode,
     // fees have implied BPS_DECIMALS decimals
-    pub ratio_mult: u64,
-    pub utilization_mult: u64,
-    pub swap_in: u64,
-    pub swap_out: u64,
-    pub stable_swap_in: u64,
-    pub stable_swap_out: u64,
-    pub add_liquidity: u64,
-    pub remove_liquidity: u64,
-    pub open_position: u64,
-    pub close_position: u64,
-    pub liquidation: u64,
+    pub ratio_mult: u16,
+    pub utilization_mult: u16,
+    pub swap_in: u16,
+    pub swap_out: u16,
+    pub stable_swap_in: u16,
+    pub stable_swap_out: u16,
+    pub add_liquidity: u16,
+    pub remove_liquidity: u16,
+    pub open_position: u16,
+    pub close_position: u16,
+    pub liquidation: u16,
     // This is initially intended to be the protocol revenues (a fee on the fees)
     // In the case of ADX, this will be repurposed to go to the ADX staking rewards (and give a share of the revenue to ADX holders)
-    pub protocol_share: u64,
+    pub protocol_share: u16,
     // configs for optimal fee mode
-    pub fee_max: u64,
-    pub fee_optimal: u64,
+    pub fee_max: u16,
+    pub fee_optimal: u16,
 }
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Default, Debug)]
@@ -100,15 +100,15 @@ pub struct PricingParams {
     // whether to account for unrealized pnl in assets under management calculations
     pub use_unrealized_pnl_in_aum: bool,
     // pricing params have implied BPS_DECIMALS decimals (except ended with _usd)
-    pub trade_spread_long: u64,
-    pub trade_spread_short: u64,
-    pub swap_spread: u64,
-    pub min_initial_leverage: u64,
-    pub max_initial_leverage: u64,
-    pub max_leverage: u64,
+    pub trade_spread_long: u16,
+    pub trade_spread_short: u16,
+    pub swap_spread: u16,
+    pub min_initial_leverage: u32,
+    pub max_initial_leverage: u32,
+    pub max_leverage: u32,
     // max_user_profit = position_size * max_payoff_mult
-    pub max_payoff_mult: u64,
-    pub max_utilization: u64,
+    pub max_payoff_mult: u32,
+    pub max_utilization: u16,
     // USD denominated values always have implied USD_DECIMALS decimals
     pub max_position_locked_usd: u64,
     pub max_total_locked_usd: u64,
@@ -176,6 +176,8 @@ impl PositionStats {
             .iter()
             .position(|stable_locked_amount_stat| stable_locked_amount_stat.locked_amount.eq(&0u64))
         {
+            self.stable_locked_amount[index].custody = stable_custody.clone();
+
             return Ok(&mut self.stable_locked_amount[index]);
         }
 
@@ -303,7 +305,7 @@ impl Custody {
                 self.assets.owned as u128,
             )?)?;
             require!(
-                current_utilization <= self.pricing.max_utilization,
+                current_utilization <= self.pricing.max_utilization as u64,
                 PerpetualsError::MaxUtilization
             );
         }

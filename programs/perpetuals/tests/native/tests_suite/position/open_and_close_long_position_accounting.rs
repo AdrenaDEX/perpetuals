@@ -209,7 +209,8 @@ pub async fn open_and_close_long_position_accounting() {
                     after.open_position_usd
                 );
 
-                assert_unchanged!(before.swap_usd, after.swap_usd);
+                assert_eq!(before.swap_usd, after.swap_usd - 22_443_750);
+
                 assert_unchanged!(before.add_liquidity_usd, after.add_liquidity_usd);
                 assert_unchanged!(before.remove_liquidity_usd, after.remove_liquidity_usd);
                 assert_unchanged!(before.close_position_usd, after.close_position_usd);
@@ -365,7 +366,7 @@ pub async fn open_and_close_long_position_accounting() {
             //
             // User get back ~$531,74 worth of ETH (1,500 original value minus ~$968 loss)
             assert_eq!(
-                martin_eth_ata_balance_before + 393_608_332,
+                martin_eth_ata_balance_before + 393_608_501,
                 martin_eth_ata_balance_after
             );
         }
@@ -418,7 +419,7 @@ pub async fn open_and_close_long_position_accounting() {
                     after.oi_long_usd
                 );
 
-                assert_eq!(before.loss_usd + 968_628_751, after.loss_usd);
+                assert_eq!(before.loss_usd + 968_628_523, after.loss_usd);
 
                 assert_unchanged!(before.profit_usd, after.profit_usd);
                 assert_unchanged!(before.oi_short_usd, after.oi_short_usd);

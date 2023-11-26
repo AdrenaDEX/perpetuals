@@ -469,7 +469,7 @@ pub async fn open_and_close_short_position_accounting() {
                 //
                 // Fees: $14.85
                 // Total amount earned: $106.649999
-                martin_usdc_ata_balance_before + 606_635_299,
+                martin_usdc_ata_balance_before + 606_634_943,
                 martin_usdc_ata_balance_after
             );
 
@@ -555,7 +555,7 @@ pub async fn open_and_close_short_position_accounting() {
                     assert_unchanged!(before.loss_usd, after.loss_usd);
 
                     assert_eq!(before.oi_short_usd - 1_485_000_000, after.oi_short_usd);
-                    assert_eq!(before.profit_usd + 106_635_299, after.profit_usd);
+                    assert_eq!(before.profit_usd + 106_634_943, after.profit_usd);
                 }
 
                 // USDC
