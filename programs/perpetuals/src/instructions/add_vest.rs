@@ -1,6 +1,7 @@
 //! AddVest instruction handler
 
 use {
+    super::BucketName,
     crate::{
         adapters::{self, CreateTokenOwnerRecord, SplGovernanceV3Adapter},
         error::PerpetualsError,
@@ -116,9 +117,10 @@ pub struct AddVest<'info> {
 
 const SEVEN_DAYS_IN_SECONDS: i64 = 3_600 * 24 * 7;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
 pub struct AddVestParams {
     pub amount: u64,
+    pub origin_bucket: BucketName,
     pub unlock_start_timestamp: i64,
     pub unlock_end_timestamp: i64,
 }
@@ -185,6 +187,7 @@ pub fn add_vest<'info>(
         );
 
         vest.amount = params.amount;
+        vest.origin_bucket = params.origin_bucket;
         vest.unlock_start_timestamp = params.unlock_start_timestamp;
         vest.unlock_end_timestamp = params.unlock_end_timestamp;
         vest.claimed_amount = 0;
@@ -198,6 +201,12 @@ pub fn add_vest<'info>(
         let cortex = ctx.accounts.cortex.as_mut();
 
         cortex.vests.push(ctx.accounts.vest.key());
+
+        // update reserved amount in bucket
+        cortex.update_bucket_vested_amount(
+            params.origin_bucket,
+            i64::try_from(params.amount).map_err(|_| PerpetualsError::MathOverflow)?,
+        )?;
 
         // stats
         cortex.vested_token_amount =

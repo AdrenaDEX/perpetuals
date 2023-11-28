@@ -2,7 +2,7 @@ use {
     crate::{
         adapters::SplGovernanceV3Adapter,
         error::PerpetualsError,
-        instructions::{BucketName, MintLmTokensFromBucketParams},
+        instructions::MintLmTokensFromBucketParams,
         math,
         state::{cortex::Cortex, perpetuals::Perpetuals, vest::Vest},
     },
@@ -137,7 +137,7 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
                     ]],
                 ),
                 MintLmTokensFromBucketParams {
-                    bucket_name: BucketName::Ecosystem,
+                    bucket_name: vest.origin_bucket,
                     amount: claimable_amount,
                     reason: String::from("Liquidity mining rewards"),
                 },
@@ -164,6 +164,12 @@ pub fn claim_vest<'info>(ctx: Context<'_, '_, '_, 'info, ClaimVest<'info>>) -> R
     {
         cortex.vested_token_amount =
             math::checked_sub(cortex.vested_token_amount, claimable_amount.into())?;
+
+        // substract the claimed amount from the bucket reserved amount
+        cortex.update_bucket_vested_amount(
+            vest.origin_bucket,
+            -(i64::try_from(claimable_amount).map_err(|_| PerpetualsError::MathOverflow)?),
+        )?;
     }
 
     // If everything have been claimed, remove vesting from the cortex list

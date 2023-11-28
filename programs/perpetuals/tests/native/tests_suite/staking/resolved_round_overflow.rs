@@ -5,7 +5,7 @@ use {
     },
     maplit::hashmap,
     perpetuals::{
-        instructions::{AddLiquidStakeParams, AddLiquidityParams, AddVestParams},
+        instructions::{AddLiquidStakeParams, AddLiquidityParams, AddVestParams, BucketName},
         state::{
             cortex::Cortex,
             staking::{Staking, StakingRound},
@@ -106,6 +106,7 @@ pub async fn resolved_round_overflow() {
             &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(10, Cortex::LM_DECIMALS),
+                origin_bucket: BucketName::CoreContributor,
                 unlock_start_timestamp: current_time,
                 unlock_end_timestamp: current_time + utils::days_in_seconds(7),
             },

@@ -1,14 +1,10 @@
 //! MintLmTokensFromBucket instruction handler
 
 use {
-    crate::{
-        error::PerpetualsError,
-        math,
-        state::{
-            cortex::Cortex,
-            multisig::{AdminInstruction, Multisig},
-            perpetuals::Perpetuals,
-        },
+    crate::state::{
+        cortex::Cortex,
+        multisig::{AdminInstruction, Multisig},
+        perpetuals::Perpetuals,
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{Mint, Token, TokenAccount},
@@ -66,11 +62,12 @@ pub struct MintLmTokensFromBucketParams {
     pub reason: String,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub enum BucketName {
     CoreContributor,
     DaoTreasury,
     PoL,
+    #[default]
     Ecosystem,
 }
 
@@ -144,45 +141,7 @@ pub fn mint_lm_tokens_from_bucket<'info>(
 
     msg!("Reason: {}", params.reason);
 
-    match params.bucket_name {
-        BucketName::CoreContributor => {
-            cortex.core_contributor_bucket_minted_amount =
-                math::checked_add(cortex.core_contributor_bucket_minted_amount, params.amount)?;
-
-            require!(
-                cortex.core_contributor_bucket_minted_amount
-                    <= cortex.core_contributor_bucket_allocation,
-                PerpetualsError::BucketMintLimit
-            );
-        }
-        BucketName::DaoTreasury => {
-            cortex.dao_treasury_bucket_minted_amount =
-                math::checked_add(cortex.dao_treasury_bucket_minted_amount, params.amount)?;
-
-            require!(
-                cortex.dao_treasury_bucket_minted_amount <= cortex.dao_treasury_bucket_allocation,
-                PerpetualsError::BucketMintLimit
-            );
-        }
-        BucketName::PoL => {
-            cortex.pol_bucket_minted_amount =
-                math::checked_add(cortex.pol_bucket_minted_amount, params.amount)?;
-
-            require!(
-                cortex.pol_bucket_minted_amount <= cortex.pol_bucket_allocation,
-                PerpetualsError::BucketMintLimit
-            );
-        }
-        BucketName::Ecosystem => {
-            cortex.ecosystem_bucket_minted_amount =
-                math::checked_add(cortex.ecosystem_bucket_minted_amount, params.amount)?;
-
-            require!(
-                cortex.ecosystem_bucket_minted_amount <= cortex.ecosystem_bucket_allocation,
-                PerpetualsError::BucketMintLimit
-            );
-        }
-    }
+    cortex.update_bucket_minted_amount(params.bucket_name, params.amount)?;
 
     ctx.accounts.perpetuals.mint_tokens(
         ctx.accounts.lm_token_mint.to_account_info(),

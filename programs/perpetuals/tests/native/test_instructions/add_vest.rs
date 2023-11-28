@@ -98,11 +98,7 @@ pub async fn add_vest(
             program_test_ctx,
             accounts_meta,
             perpetuals::instruction::AddVest {
-                params: AddVestParams {
-                    amount: params.amount,
-                    unlock_start_timestamp: params.unlock_start_timestamp,
-                    unlock_end_timestamp: params.unlock_end_timestamp,
-                },
+                params: params.clone(),
             },
             Some(&payer.pubkey()),
             &[admin, payer, signer],

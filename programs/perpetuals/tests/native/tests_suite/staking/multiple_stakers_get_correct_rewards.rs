@@ -5,7 +5,7 @@ use {
     },
     maplit::hashmap,
     perpetuals::{
-        instructions::{AddLiquidStakeParams, AddLockedStakeParams, AddVestParams},
+        instructions::{AddLiquidStakeParams, AddLockedStakeParams, AddVestParams, BucketName},
         state::{
             cortex::Cortex,
             staking::{Staking, StakingRound},
@@ -127,6 +127,7 @@ pub async fn multiple_stakers_get_correct_rewards() {
                 &test_setup.governance_realm_pda,
                 &AddVestParams {
                     amount: utils::scale(2, Cortex::LM_DECIMALS),
+                    origin_bucket: BucketName::CoreContributor,
                     unlock_start_timestamp: current_time,
                     unlock_end_timestamp: current_time + utils::days_in_seconds(7),
                 },

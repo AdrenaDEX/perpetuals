@@ -6,8 +6,9 @@ use {
     maplit::hashmap,
     perpetuals::{
         instructions::{
-            AddLiquidStakeParams, AddVestParams, ClosePositionParams, OpenPositionParams,
-            OpenPositionWithSwapParams, RemoveLiquidStakeParams, RemoveLiquidityParams, SwapParams,
+            AddLiquidStakeParams, AddVestParams, BucketName, ClosePositionParams,
+            OpenPositionParams, OpenPositionWithSwapParams, RemoveLiquidStakeParams,
+            RemoveLiquidityParams, SwapParams,
         },
         state::{cortex::Cortex, perpetuals::Perpetuals, position::Side, staking::StakingRound},
     },
@@ -330,6 +331,7 @@ pub async fn basic_interactions() {
             &test_setup.governance_realm_pda,
             &AddVestParams {
                 amount: utils::scale(2, Cortex::LM_DECIMALS),
+                origin_bucket: BucketName::CoreContributor,
                 unlock_start_timestamp: current_time,
                 unlock_end_timestamp: utils::days_in_seconds(7) + current_time,
             },
