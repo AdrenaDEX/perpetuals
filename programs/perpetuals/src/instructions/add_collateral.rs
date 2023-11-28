@@ -211,7 +211,7 @@ pub fn add_collateral(ctx: Context<AddCollateral>, params: &AddCollateralParams)
         math::checked_add(collateral_custody.assets.collateral, params.collateral)?;
 
     // if custody and collateral_custody accounts are the same, ensure that data is in sync
-    if position.side == Side::Long && !custody.is_virtual {
+    if position.side == Side::Long {
         *custody = collateral_custody.clone();
     }
 

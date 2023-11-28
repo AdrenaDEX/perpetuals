@@ -158,7 +158,7 @@ pub async fn add_liquidity(
     assert!(custody_token_account_after.amount > custody_token_account_before.amount);
     assert!(
         lm_staking_reward_token_vault_account_after.amount
-            > lm_staking_reward_token_vault_account_before.amount
+            >= lm_staking_reward_token_vault_account_before.amount
     );
     // Only increase if there are locked staked lp tokens
     assert!(

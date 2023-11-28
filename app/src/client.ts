@@ -894,7 +894,6 @@ export class PerpetualsClient {
     return this.program.methods
       .setCustodyConfig({
         isStable: custodyAccount.isStable,
-        isVirtual: custodyAccount.isVirtual,
         oracle: custodyAccount.oracle,
         pricing: custodyAccount.pricing,
         permissions: custodyAccount.permissions,
@@ -920,7 +919,6 @@ export class PerpetualsClient {
     poolName: string,
     tokenMint: PublicKey,
     isStable: boolean,
-    isVirtual: boolean,
     oracleConfig: OracleParams,
     pricingConfig: PricingParams,
     permissions: Permissions,
@@ -931,7 +929,6 @@ export class PerpetualsClient {
     await this.program.methods
       .addCustody({
         isStable,
-        isVirtual,
         oracle: oracleConfig,
         pricing: pricingConfig,
         permissions,

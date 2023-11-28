@@ -28,7 +28,7 @@ pub struct TestAdminRevomeCollateral<'info> {
     #[account(
         seeds = [b"multisig"],
         bump = multisig.load()?.bump,
-        constraint = multisig.load()?.is_signer(&admin.key())? == true,
+        constraint = multisig.load()?.is_signer(&admin.key())?,
     )]
     pub multisig: AccountLoader<'info, Multisig>,
 

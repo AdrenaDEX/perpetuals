@@ -54,6 +54,26 @@ pub fn fees_linear_regular() -> Fees {
     }
 }
 
+pub fn no_fees() -> Fees {
+    Fees {
+        mode: FeesMode::Linear,
+        ratio_mult: 20_000,
+        utilization_mult: 20_000,
+        swap_in: 0,
+        swap_out: 0,
+        stable_swap_in: 0,
+        stable_swap_out: 0,
+        add_liquidity: 0,
+        remove_liquidity: 0,
+        open_position: 0,
+        close_position: 0,
+        liquidation: 0,
+        protocol_share: 0,
+        fee_max: 0,
+        fee_optimal: 0,
+    }
+}
+
 pub fn pricing_params_regular(use_ema: bool) -> PricingParams {
     PricingParams {
         use_ema,
@@ -75,7 +95,6 @@ pub fn oracle_params_regular(oracle_account: Pubkey) -> OracleParams {
     OracleParams {
         oracle_account,
         oracle_type: OracleType::Custom,
-        oracle_authority: Pubkey::default(),
         max_price_error: 1_000_000,
         // Price never go stale in tests
         max_price_age_sec: u32::MAX,

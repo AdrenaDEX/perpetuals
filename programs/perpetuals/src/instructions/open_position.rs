@@ -231,11 +231,11 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     {
         return Err(ProgramError::InvalidArgument.into());
     }
-    let use_collateral_custody = params.side == Side::Short || custody.is_virtual;
+    let use_collateral_custody = params.side == Side::Short;
     if use_collateral_custody {
         require_keys_neq!(custody.key(), collateral_custody.key());
         require!(
-            collateral_custody.is_stable && !collateral_custody.is_virtual,
+            collateral_custody.is_stable,
             PerpetualsError::InvalidCollateralCustody
         );
     } else {
@@ -347,6 +347,7 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         fee_amount = collateral_token_ema_price
             .get_token_amount(fee_amount_usd, collateral_custody.decimals)?;
     }
+
     msg!("Collected fee: {}", fee_amount);
 
     // compute amount to transfer (paid in collateral_custody)
@@ -369,6 +370,7 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     position.unrealized_profit_usd = 0;
     position.unrealized_loss_usd = 0;
     position.cumulative_interest_snapshot = collateral_custody.get_cumulative_interest(curtime)?;
+    // in collateral amount
     position.locked_amount = locked_amount;
     position.collateral_amount = params.collateral;
     position.bump = *ctx
@@ -377,13 +379,11 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         .ok_or(ProgramError::InvalidSeeds)?;
 
     // check position risk
-    msg!("Check position risks");
     require!(
         position.locked_amount > 0,
         PerpetualsError::InsufficientAmountReturned
     );
 
-    msg!("Check leverage");
     require!(
         pool.check_leverage(
             position,
@@ -400,7 +400,6 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
     );
 
     // lock funds for potential profit payoff
-    msg!("Lock funds");
     collateral_custody.lock_funds(position.locked_amount)?;
 
     // transfer tokens
@@ -497,6 +496,8 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         )?;
     }
 
+    // when custody and collateral_custody are the same, sync the accounts to avoid
+    // overrides when accounts get saved at the end of the ix
     if !use_collateral_custody {
         *custody = collateral_custody.clone();
     }
@@ -506,17 +507,28 @@ pub fn open_position(ctx: Context<OpenPosition>, params: &OpenPositionParams) ->
         .open_position_usd
         .wrapping_add(size_usd);
 
-    if position.side == Side::Long {
+    if params.side == Side::Long {
         custody.trade_stats.oi_long_usd =
             math::checked_add(custody.trade_stats.oi_long_usd, size_usd)?;
     } else {
         custody.trade_stats.oi_short_usd =
             math::checked_add(custody.trade_stats.oi_short_usd, size_usd)?;
     }
-    custody.add_position(position, &token_ema_price, curtime, None)?;
-    custody.update_borrow_rate(curtime)?;
 
-    if !use_collateral_custody {
+    if use_collateral_custody {
+        custody.add_position(
+            position,
+            &collateral_token_ema_price,
+            curtime,
+            Some(collateral_custody),
+        )?;
+
+        collateral_custody.update_borrow_rate(curtime)?;
+    } else {
+        custody.add_position(position, &token_ema_price, curtime, None)?;
+
+        custody.update_borrow_rate(curtime)?;
+
         *collateral_custody = custody.clone();
     }
 

@@ -33,8 +33,6 @@ pub struct OraclePrice {
 pub struct OracleParams {
     pub oracle_account: Pubkey,
     pub oracle_type: OracleType,
-    // The oracle_authority pubkey is allowed to sign permissionless off-chain price updates.
-    pub oracle_authority: Pubkey,
     pub max_price_error: u64,
     pub max_price_age_sec: u32,
 }

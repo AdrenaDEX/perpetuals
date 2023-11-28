@@ -86,4 +86,8 @@ pub enum PerpetualsError {
     PermissionlessOracleSignerMismatch,
     #[msg("Signed message does not match instruction params")]
     PermissionlessOracleMessageMismatch,
+    #[msg("Cannot find custody stable locked amount")]
+    CustodyStableLockedAmountNotFound,
+    #[msg("Cannot find custody")]
+    CustodyNotFound,
 }

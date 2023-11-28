@@ -16,6 +16,11 @@ pub async fn test_integration() {
 
     tests_suite::position_with_swap::open_close_position_with_swap().await;
 
+    tests_suite::get_assets_under_management_usd::single_long().await;
+    tests_suite::get_assets_under_management_usd::single_short().await;
+    tests_suite::position::open_and_close_long_position_accounting().await;
+    tests_suite::position::open_and_close_short_position_accounting().await;
+
     tests_suite::position::min_max_leverage().await;
     tests_suite::position::liquidate_position().await;
     tests_suite::position::max_user_profit().await;

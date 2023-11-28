@@ -37,7 +37,6 @@ pub struct SetupCustodyParams<'a> {
     pub mint_name: &'a str,
 
     pub is_stable: bool,
-    pub is_virtual: bool,
     pub target_ratio: u64,
     pub min_ratio: u64,
     pub max_ratio: u64,
@@ -327,16 +326,12 @@ impl TestSetup {
 
         // Initialize users token accounts for each mints
         {
-            let mut mints_pubkeys: Vec<Pubkey> =
-                mints.values().into_iter().map(|info| info.pubkey).collect();
+            let mut mints_pubkeys: Vec<Pubkey> = mints.values().map(|info| info.pubkey).collect();
 
             mints_pubkeys.push(lm_token_mint);
 
-            let users_pubkeys: Vec<Pubkey> = users
-                .values()
-                .into_iter()
-                .map(|keypair| keypair.pubkey())
-                .collect();
+            let users_pubkeys: Vec<Pubkey> =
+                users.values().map(|keypair| keypair.pubkey()).collect();
 
             utils::initialize_users_token_accounts(&program_test_ctx, mints_pubkeys, users_pubkeys)
                 .await;
@@ -409,7 +404,6 @@ impl TestSetup {
                 let custody_pda = {
                     let add_custody_params = AddCustodyParams {
                         is_stable: custody_param.setup_custody_params.is_stable,
-                        is_virtual: custody_param.setup_custody_params.is_virtual,
                         oracle: fixtures::oracle_params_regular(custom_oracle_pda),
                         pricing: custody_param
                             .setup_custody_params

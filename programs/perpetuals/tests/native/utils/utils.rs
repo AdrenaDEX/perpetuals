@@ -1,5 +1,4 @@
 use {
-    super::get_program_data_pda,
     crate::test_instructions,
     anchor_lang::{prelude::*, InstructionData},
     anchor_spl::token::spl_token,
@@ -9,25 +8,38 @@ use {
         adapters::SplGovernanceV3Adapter,
         instructions::SetCustodyConfigParams,
         math,
-        state::{custody::Custody, perpetuals::Perpetuals, pool::TokenRatios},
+        state::{
+            custody::Custody,
+            oracle::CustomOracle,
+            perpetuals::Perpetuals,
+            pool::{AumCalcMode, Pool, TokenRatios},
+        },
     },
     solana_program::{
-        borsh::try_from_slice_unchecked, bpf_loader_upgradeable, clock::SLOT_MS,
+        borsh0_10::try_from_slice_unchecked, clock::DEFAULT_MS_PER_SLOT,
         epoch_schedule::DEFAULT_SLOTS_PER_EPOCH, program_pack::Pack, stake_history::Epoch,
     },
-    solana_program_test::{read_file, BanksClientError, ProgramTest, ProgramTestContext},
+    solana_program_test::{BanksClientError, ProgramTest, ProgramTestContext},
     solana_sdk::{
         account, compute_budget::ComputeBudgetInstruction, signature::Keypair, signer::Signer,
         signers::Signers,
     },
-    std::{
-        ops::{Div, Mul},
-        path::Path,
-    },
+    std::ops::{Div, Mul},
     tokio::sync::RwLock,
 };
 
 pub const ANCHOR_DISCRIMINATOR_SIZE: usize = 8;
+
+#[macro_export]
+macro_rules! assert_unchanged {
+    ($before:expr, $after:expr) => {
+        assert_eq!(
+            $before, $after,
+            "Values are not the same: {:?} != {:?}",
+            $before, $after
+        );
+    };
+}
 
 pub fn create_and_fund_account(address: &Pubkey, program_test: &mut ProgramTest) {
     program_test.add_account(
@@ -194,7 +206,7 @@ pub async fn warp_forward(ctx: &RwLock<ProgramTestContext>, seconds: i64) {
 
     let seconds_since_epoch_start = new_clock.unix_timestamp - clock_sysvar.epoch_start_timestamp;
     let ms_since_epoch_start = seconds_since_epoch_start * 1_000;
-    let slots_since_epoch_start = ms_since_epoch_start / SLOT_MS as i64;
+    let slots_since_epoch_start = ms_since_epoch_start / DEFAULT_MS_PER_SLOT as i64;
     let epochs_since_epoch_start = slots_since_epoch_start / DEFAULT_SLOTS_PER_EPOCH as i64;
     new_clock.epoch = (new_clock.epoch as i64 + epochs_since_epoch_start) as u64;
 
@@ -380,7 +392,6 @@ pub async fn set_custody_ratios(
         custody_pda,
         SetCustodyConfigParams {
             is_stable: custody_account.is_stable,
-            is_virtual: custody_account.is_virtual,
             oracle: custody_account.oracle,
             pricing: custody_account.pricing,
             permissions: custody_account.permissions,
@@ -430,4 +441,89 @@ pub async fn initialize_users_token_accounts(
             .await
             .unwrap();
     }
+}
+
+async fn get_account_info<'a, T: anchor_lang::AccountDeserialize + AnchorSerialize>(
+    program_test_ctx: &'a RwLock<ProgramTestContext>,
+    pda: &'a Pubkey,
+    discriminator: [u8; 8],
+) -> std::result::Result<AccountInfo<'a>, tokio::io::Error> {
+    let lamports = Box::new(1_000_000);
+    let owner = Box::new(Perpetuals::id());
+
+    let acc: T = get_account::<T>(program_test_ctx, *pda).await;
+
+    let mut data: Vec<u8> = acc.try_to_vec().unwrap();
+    data.splice(0..0, discriminator.iter().cloned());
+
+    let data_box = Box::new(data);
+
+    Ok(AccountInfo::new(
+        pda,
+        false,
+        true,
+        Box::leak(lamports),
+        // Serialize `CustomOracle` struct to Vec<u8>
+        Box::leak(data_box).as_mut(),
+        Box::leak(owner),
+        false,
+        Epoch::default(),
+    ))
+}
+
+async fn get_custody_account_info<'a>(
+    program_test_ctx: &'a RwLock<ProgramTestContext>,
+    pda: &'a Pubkey,
+) -> std::result::Result<AccountInfo<'a>, tokio::io::Error> {
+    let custody_discriminator = [1, 184, 48, 81, 93, 131, 63, 145];
+
+    get_account_info::<Custody>(program_test_ctx, pda, custody_discriminator).await
+}
+
+async fn get_custom_oracle_account_info<'a>(
+    program_test_ctx: &'a RwLock<ProgramTestContext>,
+    pda: &'a Pubkey,
+) -> std::result::Result<AccountInfo<'a>, tokio::io::Error> {
+    let custom_oracle_discriminator = [227, 170, 164, 218, 127, 16, 35, 223];
+
+    get_account_info::<CustomOracle>(program_test_ctx, pda, custom_oracle_discriminator).await
+}
+
+pub async fn get_assets_under_management_usd(
+    program_test_ctx: &RwLock<ProgramTestContext>,
+    pool_pda: Pubkey,
+) -> std::result::Result<u128, anchor_lang::error::Error> {
+    let pool_account = get_account::<Pool>(program_test_ctx, pool_pda).await;
+
+    let mut account_infos: Vec<AccountInfo> = vec![];
+
+    // Add all custodies accounts
+    for custody_pda in &pool_account.custodies {
+        account_infos.push(
+            get_custody_account_info(program_test_ctx, custody_pda)
+                .await
+                .unwrap(),
+        );
+    }
+
+    // Add all custodies accounts
+    for custody_pda in &pool_account.custodies {
+        let custody_acc: Custody = get_account::<Custody>(program_test_ctx, *custody_pda).await;
+
+        let oracle_pda = Box::new(custody_acc.oracle.oracle_account);
+
+        account_infos.push(
+            get_custom_oracle_account_info(program_test_ctx, Box::leak(oracle_pda))
+                .await
+                .unwrap(),
+        );
+    }
+
+    let curtime = get_current_unix_timestamp(program_test_ctx).await;
+
+    pool_account.get_assets_under_management_usd(
+        AumCalcMode::Max,
+        account_infos.as_slice(),
+        curtime,
+    )
 }

@@ -123,7 +123,7 @@ pub fn get_entry_price_and_fee(
     let collateral_usd = min_collateral_price
         .get_asset_amount_usd(params.collateral, collateral_custody.decimals)?;
 
-    let locked_amount = if params.side == Side::Short || custody.is_virtual {
+    let locked_amount = if params.side == Side::Short {
         custody.get_locked_amount(
             min_collateral_price.get_token_amount(size_usd, collateral_custody.decimals)?,
             params.side,
@@ -156,7 +156,7 @@ pub fn get_entry_price_and_fee(
         collateral_custody,
     )?;
 
-    if params.side == Side::Short || custody.is_virtual {
+    if params.side == Side::Short {
         let fee_amount_usd = token_ema_price.get_asset_amount_usd(fee, custody.decimals)?;
         fee = collateral_token_ema_price
             .get_token_amount(fee_amount_usd, collateral_custody.decimals)?;

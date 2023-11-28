@@ -11,6 +11,7 @@ use {
     tokio::sync::RwLock,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub async fn open_position_with_swap(
     program_test_ctx: &RwLock<ProgramTestContext>,
     owner: &Keypair,

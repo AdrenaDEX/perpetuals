@@ -108,7 +108,7 @@ pub fn get_exit_price_and_fee(
 
     let mut fee = pool.get_exit_fee(size, custody)?;
 
-    if position.side == Side::Short || custody.is_virtual {
+    if position.side == Side::Short {
         let fee_amount_usd = token_ema_price.get_asset_amount_usd(fee, custody.decimals)?;
         fee = collateral_token_ema_price
             .get_token_amount(fee_amount_usd, collateral_custody.decimals)?;

@@ -69,7 +69,6 @@ pub async fn basic_interactions() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "usdc",
                     is_stable: true,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(34.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -87,7 +86,6 @@ pub async fn basic_interactions() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "eth",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(33.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -105,7 +103,6 @@ pub async fn basic_interactions() {
                 setup_custody_params: utils::SetupCustodyParams {
                     mint_name: "btc",
                     is_stable: false,
-                    is_virtual: false,
                     target_ratio: utils::ratio_from_percentage(33.0),
                     min_ratio: utils::ratio_from_percentage(0.0),
                     max_ratio: utils::ratio_from_percentage(100.0),
@@ -152,6 +149,7 @@ pub async fn basic_interactions() {
             &test_setup.payer_keypair,
             &test_setup.pool_pda,
             eth_mint,
+            None,
             OpenPositionParams {
                 // max price paid (slippage implied)
                 price: utils::scale(1_550, USDC_DECIMALS),
@@ -169,8 +167,6 @@ pub async fn basic_interactions() {
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
-            &test_setup.pool_pda,
-            eth_mint,
             &position_pda,
             ClosePositionParams {
                 // lowest exit price paid (slippage implied)
@@ -213,8 +209,6 @@ pub async fn basic_interactions() {
             &test_setup.program_test_ctx,
             martin,
             &test_setup.payer_keypair,
-            &test_setup.pool_pda,
-            btc_mint,
             &position_pda,
             ClosePositionParams {
                 // lowest exit price paid (slippage implied)

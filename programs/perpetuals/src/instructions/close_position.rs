@@ -216,7 +216,7 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
     let position = ctx.accounts.position.as_mut();
     let pool = ctx.accounts.pool.as_mut();
 
-    let use_collateral_custody = position.side == Side::Short || custody.is_virtual;
+    let use_collateral_custody = position.side == Side::Short;
 
     // compute exit price
     let curtime = perpetuals.get_time()?;
@@ -408,11 +408,11 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
             math::checked_sub(collateral_custody.assets.owned, protocol_fee)?;
     }
 
+    // when custody and collateral_custody are the same, sync the accounts to avoid
+    // overrides when accounts get saved at the end of the ix
     if !use_collateral_custody {
         *custody = collateral_custody.clone();
     }
-
-    // if custody and collateral_custody accounts are the same, ensure that data is in sync
 
     custody.volume_stats.close_position_usd = custody
         .volume_stats
@@ -434,14 +434,15 @@ pub fn close_position(ctx: Context<ClosePosition>, params: &ClosePositionParams)
     custody.trade_stats.profit_usd = custody.trade_stats.profit_usd.wrapping_add(profit_usd);
     custody.trade_stats.loss_usd = custody.trade_stats.loss_usd.wrapping_add(loss_usd);
 
-    custody.remove_position(position, curtime, None)?;
-    custody.update_borrow_rate(curtime)?;
-
-    custody.update_borrow_rate(curtime)?;
-
     if use_collateral_custody {
+        custody.remove_position(position, curtime, Some(collateral_custody))?;
+
         collateral_custody.update_borrow_rate(curtime)?;
     } else {
+        custody.remove_position(position, curtime, None)?;
+
+        custody.update_borrow_rate(curtime)?;
+
         *collateral_custody = custody.clone();
     }
 

@@ -1,4 +1,5 @@
 use {
+    super::custody::MAX_STABLE_CUSTODY,
     crate::{
         error::PerpetualsError,
         math,
@@ -12,6 +13,12 @@ use {
     anchor_lang::prelude::*,
     std::cmp::Ordering,
 };
+
+struct StableCustodyInfo {
+    pub custody: Pubkey,
+    pub token_price: OraclePrice,
+    pub decimals: u8,
+}
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, Debug)]
 pub enum AumCalcMode {
@@ -39,6 +46,7 @@ pub struct Pool {
     pub bump: u8,
     pub lp_token_bump: u8,
     pub inception_time: i64,
+    pub nb_stable_custody: u8,
 }
 
 impl TokenRatios {
@@ -63,6 +71,10 @@ impl Pool {
             if !ratio.validate() {
                 return false;
             }
+        }
+
+        if self.nb_stable_custody as usize > MAX_STABLE_CUSTODY {
+            return false;
         }
 
         // check target ratios add up to 1
@@ -120,7 +132,7 @@ impl Pool {
 
     pub fn get_entry_fee(
         &self,
-        base_fee: u64,
+        base_fee: u16,
         size: u64,
         locked_amount: u64,
         collateral_custody: &Custody,
@@ -489,10 +501,10 @@ impl Pool {
             curtime,
         )?;
 
-        Ok(current_leverage <= custody.pricing.max_leverage
+        Ok(current_leverage <= custody.pricing.max_leverage as u64
             && (!initial
-                || (current_leverage >= custody.pricing.min_initial_leverage
-                    && current_leverage <= custody.pricing.max_initial_leverage)))
+                || (current_leverage >= custody.pricing.min_initial_leverage as u64
+                    && current_leverage <= custody.pricing.max_initial_leverage as u64)))
     }
 
     pub fn get_liquidation_price(
@@ -593,7 +605,7 @@ impl Pool {
 
         let size = token_ema_price.get_token_amount(position.size_usd, custody.decimals)?;
 
-        let exit_fee = if liquidation {
+        let exit_fee: u64 = if liquidation {
             self.get_liquidation_fee(size, custody)?
         } else {
             self.get_exit_fee(size, custody)?
@@ -635,18 +647,9 @@ impl Pool {
 
             if potential_profit_usd >= unrealized_loss_usd {
                 let cur_profit_usd = math::checked_sub(potential_profit_usd, unrealized_loss_usd)?;
-                let min_collateral_price = if collateral_custody.is_virtual {
-                    // if collateral_custody is virtual it means this function is called from get_assets_under_management_usd()
-                    // (to calculate unrealized pnl of all open positions) and actual collateral custody is a stablecoin.
-                    // we need to use 1USD reference price for such positions
-                    OraclePrice {
-                        price: 10u64.pow(Perpetuals::USD_DECIMALS as u32),
-                        exponent: -(Perpetuals::USD_DECIMALS as i32),
-                    }
-                } else {
-                    collateral_token_price
-                        .get_min_price(collateral_token_ema_price, collateral_custody.is_stable)?
-                };
+                let min_collateral_price = collateral_token_price
+                    .get_min_price(collateral_token_ema_price, collateral_custody.is_stable)?;
+
                 let max_profit_usd = if curtime <= position.open_time {
                     0
                 } else {
@@ -682,21 +685,16 @@ impl Pool {
             } else {
                 let cur_profit_usd =
                     math::checked_sub(position.unrealized_profit_usd, potential_loss_usd)?;
-                let min_collateral_price = if collateral_custody.is_virtual {
-                    OraclePrice {
-                        price: 10u64.pow(Perpetuals::USD_DECIMALS as u32),
-                        exponent: -(Perpetuals::USD_DECIMALS as i32),
-                    }
-                } else {
-                    collateral_token_price
-                        .get_min_price(collateral_token_ema_price, collateral_custody.is_stable)?
-                };
+                let min_collateral_price = collateral_token_price
+                    .get_min_price(collateral_token_ema_price, collateral_custody.is_stable)?;
+
                 let max_profit_usd = if curtime <= position.open_time {
                     0
                 } else {
                     min_collateral_price
                         .get_asset_amount_usd(position.locked_amount, collateral_custody.decimals)?
                 };
+
                 Ok((
                     std::cmp::min(max_profit_usd, cur_profit_usd),
                     0u64,
@@ -712,6 +710,54 @@ impl Pool {
         accounts: &[AccountInfo],
         curtime: i64,
     ) -> Result<u128> {
+        // Pre-load stable custodies info to calculate PnL for short positions properly
+        //
+        // Have to pre-load as multiple custodies cannot be loaded in memory at same time
+        let stable_custodies_info = {
+            let mut stable_custodies_info: Vec<StableCustodyInfo> = vec![];
+
+            for (idx, &custody) in self.custodies.iter().enumerate() {
+                let oracle_idx = idx + self.custodies.len();
+
+                if oracle_idx >= accounts.len() {
+                    return Err(ProgramError::NotEnoughAccountKeys.into());
+                }
+
+                require_keys_eq!(accounts[idx].key(), custody);
+
+                let custody = Account::<Custody>::try_from(&accounts[idx])?;
+
+                if !custody.is_stable {
+                    continue;
+                }
+
+                let stable_token_price = OraclePrice::new_from_oracle(
+                    &accounts[oracle_idx],
+                    &custody.oracle,
+                    curtime,
+                    false,
+                )?;
+
+                let stable_token_ema_price = OraclePrice::new_from_oracle(
+                    &accounts[oracle_idx],
+                    &custody.oracle,
+                    curtime,
+                    custody.pricing.use_ema,
+                )?;
+
+                let min_stable_price =
+                    stable_token_price.get_min_price(&stable_token_ema_price, true)?;
+
+                stable_custodies_info.push(StableCustodyInfo {
+                    custody: custody.key(),
+                    token_price: min_stable_price,
+                    decimals: custody.decimals,
+                })
+            }
+
+            stable_custodies_info
+        };
+
         let mut pool_amount_usd: u128 = 0;
         for (idx, &custody) in self.custodies.iter().enumerate() {
             let oracle_idx = idx + self.custodies.len();
@@ -768,11 +814,13 @@ impl Pool {
                     let collective_position = custody.get_collective_position(Side::Long)?;
                     let interest_usd =
                         custody.get_interest_amount_usd(&collective_position, curtime)?;
+
                     pool_amount_usd = math::checked_add(pool_amount_usd, interest_usd as u128)?;
 
                     let collective_position = custody.get_collective_position(Side::Short)?;
                     let interest_usd =
                         custody.get_interest_amount_usd(&collective_position, curtime)?;
+
                     pool_amount_usd = math::checked_add(pool_amount_usd, interest_usd as u128)?;
                 } else {
                     // compute aggregate unrealized pnl
@@ -787,8 +835,58 @@ impl Pool {
                         curtime,
                         false,
                     )?;
+
+                    let short_collective_position = {
+                        let mut short_collective_position =
+                            custody.get_collective_position(Side::Short)?;
+
+                        // When calculating PnL, we need to know the amount of token locked for payout
+                        // to know the max loss or max profit
+                        //
+                        // A way to do it is to store in locked_amount an amount of custody token equivalent to the total
+                        // stable collateral value locked in the protocol
+                        //
+                        // Not 100% clean, but work with how get_pnl_usd works today
+
+                        let mut total_stable_locked_amount_usd: u64 = 0;
+
+                        for (_, stable_locked_amount) in custody
+                            .short_positions
+                            .stable_locked_amount
+                            .iter()
+                            .enumerate()
+                        {
+                            if stable_locked_amount.locked_amount == 0 {
+                                continue;
+                            }
+
+                            let stable_custody_info = stable_custodies_info
+                                .iter()
+                                .find(|info| info.custody.eq(&stable_locked_amount.custody))
+                                .ok_or(PerpetualsError::CustodyNotFound)?;
+
+                            let stable_locked_amount_usd =
+                                stable_custody_info.token_price.get_asset_amount_usd(
+                                    stable_locked_amount.locked_amount,
+                                    stable_custody_info.decimals,
+                                )?;
+
+                            total_stable_locked_amount_usd = math::checked_add(
+                                total_stable_locked_amount_usd,
+                                stable_locked_amount_usd,
+                            )?;
+                        }
+
+                        let min_token_price = token_price.get_min_price(&token_ema_price, false)?;
+
+                        short_collective_position.locked_amount = min_token_price
+                            .get_token_amount(total_stable_locked_amount_usd, custody.decimals)?;
+
+                        short_collective_position
+                    };
+
                     let (short_profit, short_loss, _) = self.get_pnl_usd(
-                        &custody.get_collective_position(Side::Short)?,
+                        &short_collective_position,
                         &token_price,
                         &token_ema_price,
                         &custody,
@@ -811,7 +909,7 @@ impl Pool {
         Ok(pool_amount_usd)
     }
 
-    pub fn get_fee_amount(fee: u64, amount: u64) -> Result<u64> {
+    pub fn get_fee_amount(fee: u16, amount: u64) -> Result<u64> {
         if fee == 0 || amount == 0 {
             return Ok(0);
         }
@@ -823,7 +921,7 @@ impl Pool {
 
     // private helpers
     fn get_current_ratio(&self, custody: &Custody, token_price: &OraclePrice) -> Result<u64> {
-        if self.aum_usd == 0 || custody.is_virtual {
+        if self.aum_usd == 0 {
             return Ok(0);
         }
         let ratio = math::checked_as_u64(math::checked_div(
@@ -843,9 +941,6 @@ impl Pool {
         custody: &Custody,
         token_price: &OraclePrice,
     ) -> Result<u64> {
-        if custody.is_virtual {
-            return Ok(0);
-        }
         let (new_token_aum_usd, new_pool_aum_usd) = if amount_add > 0 && amount_remove > 0 {
             return Err(ProgramError::InvalidArgument.into());
         } else if amount_add == 0 && amount_remove == 0 {
@@ -896,7 +991,7 @@ impl Pool {
         token_price: &OraclePrice,
         token_ema_price: &OraclePrice,
         side: Side,
-        spread: u64,
+        spread: u16,
     ) -> Result<OraclePrice> {
         if side == Side::Long {
             let max_price = if token_price > token_ema_price {
@@ -911,7 +1006,7 @@ impl Pool {
                     math::checked_decimal_ceil_mul(
                         max_price.price,
                         max_price.exponent,
-                        spread,
+                        spread as u64,
                         -(Perpetuals::BPS_DECIMALS as i32),
                         max_price.exponent,
                     )?,
@@ -928,7 +1023,7 @@ impl Pool {
             let spread = math::checked_decimal_mul(
                 min_price.price,
                 min_price.exponent,
-                spread,
+                spread as u64,
                 -(Perpetuals::BPS_DECIMALS as i32),
                 min_price.exponent,
             )?;
@@ -949,14 +1044,12 @@ impl Pool {
     fn get_fee(
         &self,
         token_id: usize,
-        base_fee: u64,
+        base_fee: u16,
         amount_add: u64,
         amount_remove: u64,
         custody: &Custody,
         token_price: &OraclePrice,
     ) -> Result<u64> {
-        require!(!custody.is_virtual, PerpetualsError::InstructionNotAllowed);
-
         if custody.fees.mode == FeesMode::Fixed {
             Self::get_fee_amount(base_fee, std::cmp::max(amount_add, amount_remove))
         } else if custody.fees.mode == FeesMode::Linear {
@@ -983,7 +1076,7 @@ impl Pool {
     fn get_fee_linear(
         &self,
         token_id: usize,
-        base_fee: u64,
+        base_fee: u16,
         amount_add: u64,
         amount_remove: u64,
         custody: &Custody,
@@ -1060,7 +1153,7 @@ impl Pool {
         };
 
         Self::get_fee_amount(
-            math::checked_as_u64(fee)?,
+            math::checked_as_u16(fee)?,
             std::cmp::max(amount_add, amount_remove),
         )
     }
@@ -1068,7 +1161,7 @@ impl Pool {
     fn get_fee_optimal(
         &self,
         token_id: usize,
-        base_fee: u64,
+        base_fee: u16,
         amount_add: u64,
         amount_remove: u64,
         custody: &Custody,
@@ -1117,7 +1210,7 @@ impl Pool {
         )?;
 
         Self::get_fee_amount(
-            math::checked_as_u64(math::checked_add(lp_fee, base_fee)?)?,
+            math::checked_as_u16(math::checked_add(lp_fee, base_fee)?)?,
             std::cmp::max(amount_add, amount_remove),
         )
     }
@@ -1144,7 +1237,6 @@ mod test {
         let oracle = OracleParams {
             oracle_account: Pubkey::default(),
             oracle_type: OracleType::Custom,
-            oracle_authority: Pubkey::default(),
             max_price_error: 100,
             max_price_age_sec: 1,
         };
