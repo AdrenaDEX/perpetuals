@@ -33,7 +33,6 @@ pub async fn claim() {
             setup_custody_params: utils::SetupCustodyParams {
                 mint_name: "usdc",
                 is_stable: true,
-                is_virtual: false,
                 target_ratio: utils::ratio_from_percentage(50.0),
                 min_ratio: utils::ratio_from_percentage(0.0),
                 max_ratio: utils::ratio_from_percentage(100.0),

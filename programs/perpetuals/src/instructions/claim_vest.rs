@@ -2,7 +2,7 @@ use {
     crate::{
         adapters::SplGovernanceV3Adapter,
         error::PerpetualsError,
-        instructions::{BucketName, MintLmTokensFromBucketParams},
+        instructions::MintLmTokensFromBucketParams,
         math,
         state::{cortex::Cortex, perpetuals::Perpetuals, vest::Vest},
     },

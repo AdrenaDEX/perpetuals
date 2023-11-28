@@ -1,5 +1,3 @@
-use perpetuals::instructions::BucketName;
-
 use {
     crate::{
         test_instructions,
@@ -7,7 +5,7 @@ use {
     },
     maplit::hashmap,
     perpetuals::{
-        instructions::{AddLiquidStakeParams, AddLiquidityParams, AddVestParams},
+        instructions::{AddLiquidStakeParams, AddLiquidityParams, AddVestParams, BucketName},
         state::{cortex::Cortex, staking::StakingRound},
     },
     solana_sdk::signer::Signer,
