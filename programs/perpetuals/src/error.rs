@@ -91,5 +91,5 @@ pub enum PerpetualsError {
     #[msg("Cannot find custody")]
     CustodyNotFound,
     #[msg("The bucket does not contain enough token for reserving this allocation")]
-    InsuficientBucketReserve,
+    InsufficientBucketReserve,
 }
