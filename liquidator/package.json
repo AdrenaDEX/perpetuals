@@ -1,0 +1,19 @@
+{
+  "name": "liquidator",
+  "version": "1.0.0",
+  "description": "Liquidate positions for Adrena project",
+  "main": "main.ts",
+  "scripts": {},
+  "author": "Corto & Orex",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.27.0",
+    "@pythnetwork/client": "^2.17.0",
+    "@solana/spl-token": "0.3.7",
+    "@solana/web3.js": "1.75.0",
+    "bs58": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "18.16.3",
+    "typescript": "5.0.4"
+  }
+}
